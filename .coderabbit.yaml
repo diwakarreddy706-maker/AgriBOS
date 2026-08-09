@@ -1,0 +1,527 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+
+# ============================================================
+# AgriBOS - CodeRabbit Configuration
+# Agricultural Business Operating System
+# ============================================================
+
+language: "en-US"
+early_access: false
+
+# Repository configuration should stand on its own.
+# Organization/global overrides, if enforced by CodeRabbit,
+# can still take precedence.
+inheritance: false
+
+# ============================================================
+# CODE REVIEWS
+# ============================================================
+
+reviews:
+  # Balanced, high-signal reviews.
+  # Use "assertive" later if you want more aggressive feedback.
+  profile: "chill"
+
+  # Do not automatically approve PRs just because CodeRabbit
+  # comments were resolved.
+  request_changes_workflow: false
+
+  # Generate a useful PR summary.
+  high_level_summary: true
+
+  high_level_summary_instructions: |
+    Create a concise engineering summary of the pull request.
+
+    Include:
+    - What changed
+    - Why it changed
+    - Important backend changes
+    - Important frontend changes
+    - API or database changes
+    - Security-impacting changes
+    - Potential risks or breaking changes
+    - Testing or validation performed
+
+    Keep the summary factual and avoid unnecessary commentary.
+
+  high_level_summary_in_walkthrough: false
+
+  # Show useful review status information.
+  review_status: true
+
+  # Keep detailed internal review metadata out of normal PR comments.
+  review_details: false
+
+  # Show review progress.
+  review_progress: true
+
+  # Keep walkthrough readable.
+  collapse_walkthrough: true
+
+  # Include changed-file overview.
+  changed_files_summary: true
+
+  # Useful for understanding backend request/data flows.
+  sequence_diagrams: true
+
+  # Help estimate review complexity.
+  estimate_code_review_effort: true
+
+  # Check whether linked GitHub issues are actually addressed.
+  assess_linked_issues: true
+
+  # Show potentially related issues/PRs.
+  related_issues: true
+  related_prs: true
+
+  # Allow useful labels to be suggested.
+  suggested_labels: true
+  auto_apply_labels: false
+
+  # Suggest reviewers, but don't automatically assign them.
+  suggested_reviewers: true
+  auto_assign_reviewers: false
+
+  # Don't generate unnecessary poems or decorative content.
+  poem: false
+  in_progress_fortune: false
+
+  # Allow CodeRabbit to provide useful instructions to coding agents.
+  enable_prompt_for_ai_agents: true
+
+  # Stop an active review if the PR is closed/merged.
+  abort_on_close: true
+
+  # Keep caching enabled for faster reviews.
+  disable_cache: false
+
+  # ==========================================================
+  # AUTOMATIC REVIEW
+  # ==========================================================
+
+  auto_review:
+    enabled: true
+
+    # Don't review draft PRs automatically.
+    # This prevents noise while you are still working.
+    drafts: false
+
+    # Review again whenever new commits are pushed.
+    auto_incremental_review: true
+
+    # Pause after several reviewed commits to avoid excessive
+    # repeated reviews during rapid development.
+    auto_pause_after_reviewed_commits: 5
+
+    # Review the default branch PRs.
+    base_branches:
+      - "main"
+
+    # Don't automatically skip any specific contributors.
+    ignore_usernames: []
+
+    # Don't require special labels to trigger reviews.
+    labels: []
+
+    # Don't skip PRs based on title keywords.
+    ignore_title_keywords: []
+
+  # ==========================================================
+  # PATH FILTERS
+  # ==========================================================
+
+  # Keep CodeRabbit focused on source/configuration files.
+  # Generated/build/dependency artifacts are intentionally excluded.
+  path_filters:
+    - "!**/node_modules/**"
+    - "!**/dist/**"
+    - "!**/build/**"
+    - "!**/.next/**"
+    - "!**/coverage/**"
+    - "!**/*.min.js"
+    - "!**/*.map"
+    - "!**/*.lock"
+
+  # ==========================================================
+  # PATH-SPECIFIC REVIEW INSTRUCTIONS
+  # ==========================================================
+
+  path_instructions:
+    # --------------------------------------------------------
+    # BACKEND
+    # --------------------------------------------------------
+
+    - path: "agribos-backend/**"
+      instructions: |
+        Review the backend according to the existing AgriBOS
+        architecture:
+
+        Routes
+          -> Controllers
+          -> Services
+          -> Repositories
+          -> SQLite
+
+        Controllers should focus on HTTP concerns.
+        Services should contain business logic.
+        Repositories should contain database access.
+
+        Review for:
+
+        - Authentication and authorization
+        - RBAC/security boundaries
+        - Input validation
+        - API contract correctness
+        - REST API consistency
+        - Error handling
+        - Transaction safety
+        - SQLite query correctness
+        - SQL injection risks
+        - N+1 query problems
+        - Race conditions
+        - Unsafe state transitions
+        - Missing authorization checks
+        - Sensitive information exposure
+        - Hardcoded credentials/secrets
+        - Insecure logging
+        - Breaking API changes
+        - Poor separation of concerns
+
+        Do not unnecessarily move business logic into controllers.
+        Do not bypass repository/database boundaries without a
+        clear architectural reason.
+
+        Prefer small, focused, maintainable changes that preserve
+        the existing architecture.
+
+    # --------------------------------------------------------
+    # BACKEND CONTROLLERS
+    # --------------------------------------------------------
+
+    - path: "agribos-backend/**/controllers/**"
+      instructions: |
+        Focus specifically on HTTP-layer correctness.
+
+        Verify:
+
+        - Authentication is enforced where required.
+        - Authorization is enforced before protected operations.
+        - Request input is validated.
+        - Controllers do not contain substantial business logic.
+        - Controllers do not directly perform database operations.
+        - Correct HTTP status codes are returned.
+        - Errors are handled consistently.
+        - Sensitive information is not returned to clients.
+        - Request parameters, query parameters, and bodies are
+          handled safely.
+
+    # --------------------------------------------------------
+    # BACKEND SERVICES
+    # --------------------------------------------------------
+
+    - path: "agribos-backend/**/services/**"
+      instructions: |
+        Focus on business-rule correctness.
+
+        Verify:
+
+        - Business rules are centralized here where appropriate.
+        - Domain invariants are preserved.
+        - Invalid state transitions are rejected.
+        - Financial calculations are deterministic.
+        - Machine booking/dispatch rules are preserved.
+        - Transaction boundaries are correct.
+        - Services do not contain unnecessary HTTP-specific logic.
+        - Services do not bypass repository abstractions without
+          a documented architectural reason.
+
+    # --------------------------------------------------------
+    # BACKEND REPOSITORIES
+    # --------------------------------------------------------
+
+    - path: "agribos-backend/**/repositories/**"
+      instructions: |
+        Focus on database correctness and performance.
+
+        Verify:
+
+        - SQL queries are parameterized.
+        - SQL injection is prevented.
+        - Transactions are used when multiple writes must be atomic.
+        - Queries avoid unnecessary N+1 behavior.
+        - Pagination is performed at the database layer where appropriate.
+        - Search/filter operations are efficient.
+        - Database errors are handled safely.
+        - Repository methods have clear responsibilities.
+        - Business logic is not unnecessarily placed in repositories.
+
+    # --------------------------------------------------------
+    # FRONTEND
+    # --------------------------------------------------------
+
+    - path: "agribos-frontend/**"
+      instructions: |
+        Review the React + TypeScript frontend according to the
+        existing AgriBOS feature-oriented architecture.
+
+        Review for:
+
+        - TypeScript type safety
+        - React component design
+        - State management
+        - API integration
+        - Loading states
+        - Error states
+        - Empty states
+        - Form validation
+        - Accessibility
+        - Responsive behavior
+        - Performance
+        - Security
+        - Reusable components
+        - Avoiding duplicated business logic
+        - Correct handling of asynchronous operations
+
+        Avoid unnecessary dependencies.
+
+        Avoid unsafe "any" usage and unnecessary type assertions.
+
+        Keep API communication inside the existing API/client layer.
+
+        Preserve the existing English/Kannada localization strategy.
+
+    # --------------------------------------------------------
+    # FRONTEND COMPONENTS
+    # --------------------------------------------------------
+
+    - path: "agribos-frontend/**/components/**"
+      instructions: |
+        Focus on reusable React component quality.
+
+        Verify:
+
+        - Components have clear responsibilities.
+        - Business logic is not unnecessarily duplicated.
+        - Props are correctly typed.
+        - Components do not introduce unnecessary global state.
+        - Loading/error/empty states are handled appropriately.
+        - Accessibility is preserved.
+        - Components remain responsive.
+        - Avoid unnecessary re-renders.
+
+    # --------------------------------------------------------
+    # FRONTEND API
+    # --------------------------------------------------------
+
+    - path: "agribos-frontend/**/*api*.ts"
+      instructions: |
+        Review API client code carefully.
+
+        Verify:
+
+        - API endpoints match backend contracts.
+        - HTTP methods are correct.
+        - Request and response types are accurate.
+        - Authentication credentials/tokens are handled safely.
+        - API errors are normalized consistently.
+        - Mock/fallback data is not accidentally used in production
+          paths.
+        - Network failures are handled correctly.
+
+        Flag API integrations that silently hide backend failures
+        behind mock data.
+
+    # --------------------------------------------------------
+    # AUTHENTICATION
+    # --------------------------------------------------------
+
+    - path: "**/*auth*/**"
+      instructions: |
+        Treat authentication-related code as security-sensitive.
+
+        Check:
+
+        - Authentication boundaries
+        - Authorization
+        - Session/token handling
+        - Credential handling
+        - Token exposure
+        - Privilege escalation
+        - Authentication bypass
+        - Sensitive data leakage
+        - Error-message information leakage
+
+        Never recommend committing secrets, passwords, tokens,
+        private keys, or credentials.
+
+    # --------------------------------------------------------
+    # DATABASE / SQL
+    # --------------------------------------------------------
+
+    - path: "**/*.{sql,db,sqlite}"
+      instructions: |
+        Treat database changes as high-risk.
+
+        Review:
+
+        - Schema correctness
+        - Foreign-key relationships
+        - Constraints
+        - Indexing
+        - Data integrity
+        - Migration safety
+        - Transaction safety
+        - Destructive operations
+        - Backward compatibility
+
+        Flag DROP, DELETE, TRUNCATE, or destructive schema changes
+        when they could cause unintended data loss.
+
+    # --------------------------------------------------------
+    # GITHUB ACTIONS
+    # --------------------------------------------------------
+
+    - path: ".github/workflows/**"
+      instructions: |
+        Review GitHub Actions workflows for:
+
+        - Secret exposure
+        - Excessive permissions
+        - Unsafe pull-request code execution
+        - Untrusted input interpolation
+        - Dependency supply-chain risks
+        - Incorrect job dependencies
+        - Missing failure handling
+        - Unsafe third-party actions
+        - Incorrect caching
+        - Incorrect environment handling
+
+        Prefer least-privilege GitHub token permissions.
+
+    # --------------------------------------------------------
+    # DOCUMENTATION
+    # --------------------------------------------------------
+
+    - path: "**/*.md"
+      instructions: |
+        Review documentation for:
+
+        - Technical accuracy
+        - Consistency with the implementation
+        - Clear setup instructions
+        - Correct commands
+        - Correct API/module names
+        - No obsolete instructions
+        - No accidental secrets or credentials
+
+        Do not rewrite documentation unnecessarily.
+
+# ============================================================
+# PRE-MERGE CHECKS
+# ============================================================
+
+pre_merge_checks:
+  # Keep docstring enforcement disabled for now.
+  # AgriBOS is actively evolving and documentation coverage
+  # should not block development.
+  docstrings:
+    mode: "off"
+
+  # Enforce concise, meaningful PR titles.
+  title:
+    mode: "warning"
+    requirements: |
+      PR titles should be concise, descriptive, and action-oriented.
+      Prefer conventional prefixes when appropriate, such as:
+      feat:, fix:, refactor:, docs:, test:, chore:, ci:, perf:.
+      Keep titles ideally below 72 characters.
+
+  # Require useful PR descriptions, but don't block merging yet.
+  description:
+    mode: "warning"
+
+  # Check whether linked GitHub issues are actually addressed.
+  issue_assessment:
+    mode: "warning"
+
+  # Do not create custom blocking checks until the project has
+  # a mature test/CI baseline.
+  custom_checks: []
+
+# ============================================================
+# FINISHING TOUCHES
+# ============================================================
+
+finishing_touches:
+  # Allow CodeRabbit to generate/improve docstrings when requested.
+  docstrings:
+    enabled: true
+
+  # Allow unit-test generation when explicitly requested.
+  unit_tests:
+    enabled: true
+
+  # Allow autofix suggestions/actions.
+  autofix:
+    enabled: true
+
+  # Keep automatic simplification disabled.
+  # Simplification should be explicitly requested.
+  simplify:
+    enabled: false
+
+  # Allow CI failure assistance.
+  fix_ci:
+    enabled: true
+
+  # Allow merge-conflict assistance.
+  resolve_merge_conflict:
+    enabled: true
+
+  # ============================================================
+  # STATIC ANALYSIS & SECURITY TOOLS
+  # ============================================================
+
+  # CodeRabbit supports many third-party tools. These are the
+  # tools relevant to AgriBOS.
+
+  tools:
+    # JavaScript / TypeScript linting.
+    eslint:
+      enabled: true
+
+    # Modern JS/TS linting.
+    # Disabled to avoid duplicating ESLint unless the project
+    # intentionally adopts Oxlint later.
+    oxc:
+      enabled: false
+
+    # Secret detection.
+    gitleaks:
+      enabled: true
+
+    # Additional verified-secret detection.
+    trufflehog:
+      enabled: true
+
+    # Security and bug-pattern analysis.
+    semgrep:
+      enabled: true
+
+    # GitHub Actions syntax/security.
+    actionlint:
+      enabled: true
+
+    zizmor:
+      enabled: true
+
+    # YAML workflow/config validation.
+    yamllint:
+      enabled: true
+
+# ============================================================
+# CHAT
+# ============================================================
+
+chat:
+  auto_reply: true
