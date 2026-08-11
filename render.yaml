@@ -40,7 +40,6 @@ services:
           type: web
           name: agribos-backend
           property: url
-          path: /api/v1
 
 databases:
   # Render Paid Managed PostgreSQL Production Database

@@ -1,7 +1,10 @@
 import axios from 'axios';
 import { useAuthStore } from '../store/useAuthStore';
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string) || '/api/v1';
+const rawBaseUrl = (import.meta.env.VITE_API_BASE_URL as string) || '';
+const API_BASE_URL = rawBaseUrl
+  ? (rawBaseUrl.endsWith('/api/v1') ? rawBaseUrl : `${rawBaseUrl.replace(/\/+$/, '')}/api/v1`)
+  : '/api/v1';
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
