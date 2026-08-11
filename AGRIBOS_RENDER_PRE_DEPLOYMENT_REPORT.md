@@ -55,7 +55,7 @@ services:
         fromService:
           type: web
           name: agribos-frontend
-          property: url
+          envVarKey: RENDER_EXTERNAL_URL
 
   # 2. AgriBOS Frontend Static Site
   - type: web
@@ -73,15 +73,14 @@ services:
         fromService:
           type: web
           name: agribos-backend
-          property: url
-          path: /api/v1
+          envVarKey: RENDER_EXTERNAL_URL
 
 databases:
   # Render Paid Managed PostgreSQL Production Database
   - name: agribos-postgres-db
     databaseName: agribos_db
     user: agribos_user
-    plan: starter
+    plan: basic-256mb
 ```
 
 ---
