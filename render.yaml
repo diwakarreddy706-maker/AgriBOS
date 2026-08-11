@@ -46,4 +46,4 @@ databases:
   - name: agribos-postgres-db
     databaseName: agribos_db
     user: agribos_user
-    plan: starter
+    plan: basic-256mb
