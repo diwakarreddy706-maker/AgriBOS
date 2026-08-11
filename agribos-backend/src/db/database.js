@@ -911,6 +911,7 @@ export const initSqliteSchema = async () => {
 // Primary Initialization Routine
 export const initDb = async () => {
   if (isPostgres) {
+    console.log('⚡ Active Database Engine: PostgreSQL');
     await initPgSchema();
     const adminUser = await get('SELECT * FROM users WHERE username = $1', ['admin']);
     if (!adminUser) {
@@ -922,6 +923,7 @@ export const initDb = async () => {
     }
     console.log('✅ PostgreSQL Database initialized successfully with complete ERP schema.');
   } else {
+    console.log('⚡ Active Database Engine: SQLite');
     await initSqliteSchema();
     const adminUser = await get('SELECT * FROM users WHERE username = ?', ['admin']);
     if (!adminUser) {
