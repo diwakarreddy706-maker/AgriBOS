@@ -33,8 +33,8 @@ export const LoginPage: React.FC = () => {
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      username: 'admin',
-      password: 'Admin@123',
+      username: '',
+      password: '',
     },
   });
 
@@ -112,14 +112,10 @@ export const LoginPage: React.FC = () => {
             </div>
           </div>
 
-          <Button type="submit" className="w-full mt-2" isLoading={isLoading}>
+          <Button type="submit" className="w-full mt-2 cursor-pointer" isLoading={isLoading}>
             {isLoading ? t.signingIn : t.signInButton}
           </Button>
         </form>
-
-        <div className="mt-6 pt-4 border-t border-slate-200 dark:border-slate-800 text-center text-xs text-slate-500">
-          Default Admin Demo: <span className="font-mono text-agri-600">admin</span> / <span className="font-mono text-agri-600">Admin@123</span>
-        </div>
       </CardContent>
     </Card>
   );
