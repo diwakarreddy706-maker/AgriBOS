@@ -29,7 +29,7 @@ export const Sidebar: React.FC = () => {
 
 
   return (
-    <aside className="w-64 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex-col justify-between hidden md:flex h-screen sticky top-0 overflow-y-auto">
+    <aside className="w-64 border-r border-slate-800/80 bg-slate-950/95 text-slate-100 flex-col justify-between hidden md:flex h-screen sticky top-0 overflow-y-auto backdrop-blur-2xl">
       <div className="p-4 space-y-5">
         
         {/* Brand Header: BASAVESHWARA ALABANUR / SINDHANUR */}

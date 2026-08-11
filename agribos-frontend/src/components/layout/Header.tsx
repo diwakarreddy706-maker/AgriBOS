@@ -45,7 +45,7 @@ export const Header: React.FC = () => {
   }, []);
 
   return (
-    <header className="h-16 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-6 flex items-center justify-between sticky top-0 z-30 shadow-2xs">
+    <header className="h-16 border-b border-slate-800/80 bg-slate-950/90 backdrop-blur-xl px-6 flex items-center justify-between sticky top-0 z-30 shadow-xl text-slate-100">
       {/* Left: Breadcrumbs Header */}
       <div className="flex items-center space-x-2 text-xs font-semibold tracking-wider text-slate-500 uppercase">
         <span>SRI BASAVESHWARA & CO</span>
