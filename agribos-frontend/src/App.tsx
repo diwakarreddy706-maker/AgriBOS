@@ -69,6 +69,7 @@ export const App: React.FC = () => {
             <Route path="/fleet-analytics" element={<FleetAnalyticsPage />} />
             <Route path="/finance-dashboard" element={<FinanceDashboardPage />} />
             <Route path="/invoices" element={<MachineBillingLedgerPage />} />
+            <Route path="/machine-billing" element={<MachineBillingLedgerPage />} />
             <Route path="/machine-billing-ledger" element={<MachineBillingLedgerPage />} />
             <Route path="/payment-receipts" element={<PaymentReceiptListPage />} />
             <Route path="/cash-book" element={<CashBookPage />} />
