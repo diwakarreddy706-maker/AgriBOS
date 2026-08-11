@@ -36,15 +36,62 @@ export const MachineBillingLedgerPage: React.FC = () => {
     notes: '',
   });
 
+  // Helper to parse time strings like "09:00 AM", "05:30 PM", "09:00", "17:30"
+  const parseTimeToHours = (timeStr: string): number | null => {
+    if (!timeStr) return null;
+    const cleanStr = timeStr.trim().toUpperCase();
+
+    // 12-hour format e.g. "09:00 AM", "5:30 PM", "9 AM", "05:30PM"
+    const match12 = cleanStr.match(/^(\d{1,2})(?::(\d{2}))?\s*(AM|PM)?$/);
+    if (match12 && (match12[3] || match12[2])) {
+      let hours = parseInt(match12[1], 10);
+      const minutes = match12[2] ? parseInt(match12[2], 10) : 0;
+      const period = match12[3];
+
+      if (period === 'PM' && hours < 12) hours += 12;
+      if (period === 'AM' && hours === 12) hours = 0;
+
+      return hours + minutes / 60;
+    }
+
+    // 24-hour format e.g. "09:00", "17:30"
+    const match24 = cleanStr.match(/^(\d{1,2}):(\d{2})$/);
+    if (match24) {
+      const hours = parseInt(match24[1], 10);
+      const minutes = parseInt(match24[2], 10);
+      return hours + minutes / 60;
+    }
+
+    return null;
+  };
+
+  // Calculate net working hours between start time and end time minus break hours
+  const calculateNetHours = (startTimeStr: string, endTimeStr: string, breakHrs: number): number => {
+    const start = parseTimeToHours(startTimeStr);
+    const end = parseTimeToHours(endTimeStr);
+
+    if (start !== null && end !== null) {
+      let diff = end - start;
+      if (diff < 0) diff += 24; // Handles overnight work across midnight
+      const net = Math.max(0, diff - (Number(breakHrs) || 0));
+      return parseFloat(net.toFixed(2));
+    }
+
+    return 0;
+  };
+
   // Calculate Net Working Hours & Total Amount dynamically
-  const handleTimingChange = (breakHrs: number, rate: number) => {
-    // Simple helper to estimate total hours
-    const netHrs = Math.max(0, 9.5 - breakHrs);
-    const totalAmt = netHrs * rate;
+  const handleTimingChange = (newStart: string, newEnd: string, newBreak: number, rate: number) => {
+    const netHrs = calculateNetHours(newStart, newEnd, newBreak);
+    const effectiveNet = netHrs > 0 ? netHrs : formData.netWorkingHours;
+    const totalAmt = effectiveNet * rate;
+
     setFormData((prev) => ({
       ...prev,
-      breakHours: breakHrs,
-      netWorkingHours: netHrs,
+      startTime: newStart,
+      endTime: newEnd,
+      breakHours: newBreak,
+      netWorkingHours: effectiveNet,
       ratePerUnit: rate,
       totalAmount: totalAmt,
     }));
@@ -322,8 +369,8 @@ export const MachineBillingLedgerPage: React.FC = () => {
                   <input
                     type="text"
                     value={formData.startTime}
-                    onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-                    placeholder="08:00 AM"
+                    onChange={(e) => handleTimingChange(e.target.value, formData.endTime, formData.breakHours, formData.ratePerUnit)}
+                    placeholder="09:00 AM"
                     className="w-full h-10 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm font-bold text-slate-900 dark:text-slate-100"
                   />
                 </div>
@@ -338,7 +385,7 @@ export const MachineBillingLedgerPage: React.FC = () => {
                     value={formData.breakHours}
                     onChange={(e) => {
                       const breakHrs = parseFloat(e.target.value) || 0;
-                      handleTimingChange(breakHrs, formData.ratePerUnit);
+                      handleTimingChange(formData.startTime, formData.endTime, breakHrs, formData.ratePerUnit);
                     }}
                     className="w-full h-10 px-3 rounded-lg border border-amber-300 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/30 text-sm font-bold text-amber-900 dark:text-amber-300"
                   />
@@ -352,7 +399,7 @@ export const MachineBillingLedgerPage: React.FC = () => {
                   <input
                     type="text"
                     value={formData.endTime}
-                    onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
+                    onChange={(e) => handleTimingChange(formData.startTime, e.target.value, formData.breakHours, formData.ratePerUnit)}
                     placeholder="05:30 PM"
                     className="w-full h-10 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm font-bold text-slate-900 dark:text-slate-100"
                   />
