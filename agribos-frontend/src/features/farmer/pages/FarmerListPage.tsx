@@ -21,6 +21,8 @@ import {
   BookOpen
 } from 'lucide-react';
 
+import { MachineBillEntry } from '../../billing/types/billing';
+
 export const FarmerListPage: React.FC = () => {
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
@@ -38,7 +40,91 @@ export const FarmerListPage: React.FC = () => {
     queryFn: () => farmerApi.getFarmerLedgerAccounts(searchQuery),
   });
 
-  const ledgers: FarmerLedgerAccount[] = Array.isArray(rawLedgers) ? rawLedgers : [];
+  // Load local machine bills for Farmer Udhar Ledger sync
+  const localMachineBills: MachineBillEntry[] = (() => {
+    try {
+      const raw = localStorage.getItem('agribos_machine_billing_ledger');
+      if (raw) return JSON.parse(raw);
+    } catch (e) {
+      console.error('Error reading machine bills for farmer ledger:', e);
+    }
+    return [];
+  })();
+
+  const baseLedgers: FarmerLedgerAccount[] = Array.isArray(rawLedgers) ? rawLedgers : [];
+
+  // Merge machine billing entries into farmer credit ledgers
+  const ledgers: FarmerLedgerAccount[] = (() => {
+    const map = new Map<string, FarmerLedgerAccount>();
+
+    // Add base ledgers first
+    baseLedgers.forEach((l) => {
+      map.set(l.fullName.trim().toLowerCase(), { ...l, workEntries: [...(l.workEntries || [])] });
+    });
+
+    // Merge machine bills created in Machine Execution Billing
+    localMachineBills.forEach((b, idx) => {
+      const key = b.farmerName.trim().toLowerCase();
+      const existing = map.get(key);
+
+      const workEntry: FarmerWorkEntry = {
+        id: b.id || 9000 + idx,
+        billNumber: b.billNumber,
+        workDate: b.billDate,
+        machineName: b.machineName,
+        operatorName: 'Driver / Operator',
+        villageName: b.villageName,
+        cropType: 'Paddy Harvest / Tillage Work',
+        workHours: b.netWorkingHours,
+        ratePerUnit: b.ratePerUnit,
+        totalAmount: b.totalAmount,
+        advanceAmount: b.advanceAmount,
+        paidAmount: b.paidAmount,
+        balanceDue: b.balanceDue,
+        status: b.status === 'PAID' ? 'PAID' : b.status === 'PARTIAL' ? 'PARTIAL' : 'UNPAID',
+      };
+
+      if (existing) {
+        existing.totalWorkSessions += 1;
+        existing.totalBilledAmount += b.totalAmount;
+        existing.totalAdvancePaid += b.advanceAmount;
+        existing.totalPaidAmount += b.paidAmount;
+        existing.totalBalanceDue += b.balanceDue;
+        if (!existing.workEntries.some((w) => w.billNumber === b.billNumber)) {
+          existing.workEntries.unshift(workEntry);
+        }
+      } else {
+        map.set(key, {
+          id: 5000 + idx,
+          farmerCode: `FARM-${b.farmerName.replace(/\s+/g, '-').toUpperCase()}`,
+          fullName: b.farmerName,
+          fatherName: 'Sri',
+          mobileNumber: b.mobileNumber || '9880123456',
+          villageName: b.villageName,
+          talukName: 'Gangavati',
+          totalWorkSessions: 1,
+          totalBilledAmount: b.totalAmount,
+          totalAdvancePaid: b.advanceAmount,
+          totalPaidAmount: b.paidAmount,
+          totalBalanceDue: b.balanceDue,
+          workEntries: [workEntry],
+        });
+      }
+    });
+
+    const result = Array.from(map.values());
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      return result.filter(
+        (f) =>
+          f.fullName.toLowerCase().includes(q) ||
+          f.villageName.toLowerCase().includes(q) ||
+          f.mobileNumber.includes(q) ||
+          f.farmerCode.toLowerCase().includes(q)
+      );
+    }
+    return result;
+  })();
 
   // Selected farmer account object with fallback
   const selectedFarmer: FarmerLedgerAccount | undefined = 

@@ -49,6 +49,7 @@ export interface MachineBillEntry {
   machineName: string;
   registrationNumber?: string;
   farmerName: string;
+  mobileNumber?: string;
   villageName: string;
   startTime: string;
   endTime: string;

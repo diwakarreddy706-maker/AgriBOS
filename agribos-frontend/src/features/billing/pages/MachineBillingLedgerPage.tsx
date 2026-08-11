@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useLanguageStore } from '../../../store/useLanguageStore';
-import { Receipt, PlusCircle, BookOpen, Clock, Tractor, Calendar, User, MapPin, Printer, Search, FileText } from 'lucide-react';
+import { Receipt, PlusCircle, BookOpen, Clock, Tractor, Calendar, User, MapPin, Printer, Search, FileText, Phone } from 'lucide-react';
 import { MachineBillEntry } from '../types/billing';
 import { Button } from '../../../components/ui/Button';
 import { InvoicePdfModal } from '../components/InvoicePdfModal';
@@ -37,6 +37,7 @@ export const MachineBillingLedgerPage: React.FC = () => {
     billNumber: '',
     billDate: new Date().toISOString().split('T')[0],
     farmerName: '',
+    mobileNumber: '9880123456',
     villageName: '',
     startTime: '08:00 AM',
     endTime: '05:30 PM',
@@ -137,6 +138,7 @@ export const MachineBillingLedgerPage: React.FC = () => {
       machineCode: formData.machineCode,
       machineName: formData.machineName,
       farmerName: formData.farmerName,
+      mobileNumber: formData.mobileNumber || '9880123456',
       villageName: formData.villageName,
       startTime: formData.startTime,
       endTime: formData.endTime,
@@ -171,14 +173,15 @@ export const MachineBillingLedgerPage: React.FC = () => {
       billNumber: '',
       billDate: new Date().toISOString().split('T')[0],
       farmerName: '',
+      mobileNumber: '9880123456',
       villageName: '',
-      startTime: '08:00 AM',
+      startTime: '09:00 AM',
       endTime: '05:30 PM',
       breakHours: 1.5,
-      netWorkingHours: 8.0,
+      netWorkingHours: 7.0,
       rateType: 'HOURLY',
       ratePerUnit: 2400,
-      totalAmount: 19200,
+      totalAmount: 16800,
       advanceAmount: 0,
       paidAmount: 0,
       notes: '',
@@ -342,7 +345,7 @@ export const MachineBillingLedgerPage: React.FC = () => {
             </div>
 
             {/* Step 2: Farmer & Village Information */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center space-x-1">
                   <User className="w-4 h-4 text-emerald-600" />
@@ -355,6 +358,20 @@ export const MachineBillingLedgerPage: React.FC = () => {
                   onChange={(e) => setFormData({ ...formData, farmerName: e.target.value })}
                   className="w-full h-10 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm font-medium text-slate-900 dark:text-slate-100"
                   required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center space-x-1">
+                  <Phone className="w-4 h-4 text-emerald-600" />
+                  <span>Farmer Phone / Mobile *</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. 9880123456"
+                  value={formData.mobileNumber}
+                  onChange={(e) => setFormData({ ...formData, mobileNumber: e.target.value })}
+                  className="w-full h-10 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm font-medium text-slate-900 dark:text-slate-100"
                 />
               </div>
 
