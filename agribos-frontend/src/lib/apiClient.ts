@@ -8,6 +8,7 @@ const API_BASE_URL = rawBaseUrl
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -25,24 +26,26 @@ apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+    // Don't retry refresh requests themselves
+    if (originalRequest?.url?.includes('/auth/refresh') || originalRequest?.url?.includes('/auth/login')) {
+      return Promise.reject(error);
+    }
+
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
       const refreshToken = useAuthStore.getState().refreshToken;
 
-      if (refreshToken) {
-        try {
-          const res = await axios.post(`${API_BASE_URL}/auth/refresh`, { refreshToken });
-          if (res.data?.success) {
-            const { accessToken, refreshToken: newRefreshToken } = res.data.data;
-            useAuthStore.getState().setTokens(accessToken, newRefreshToken);
-            originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-            return apiClient(originalRequest);
-          }
-        } catch (refreshErr) {
-          useAuthStore.getState().logout();
+      try {
+        const res = await axios.post(`${API_BASE_URL}/auth/refresh`, { refreshToken }, { withCredentials: true });
+        if (res.data?.success) {
+          const { accessToken, refreshToken: newRefreshToken } = res.data.data;
+          useAuthStore.getState().setTokens(accessToken, newRefreshToken);
+          originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+          return apiClient(originalRequest);
         }
-      } else {
+      } catch (refreshErr) {
         useAuthStore.getState().logout();
+        window.location.href = '/login';
       }
     }
     return Promise.reject(error);
@@ -50,4 +53,3 @@ apiClient.interceptors.response.use(
 );
 
 export default apiClient;
-

@@ -15,7 +15,7 @@ export const userRepository = {
       `INSERT INTO users (username, password_hash, full_name, email, roles) VALUES (?, ?, ?, ?, ?)`,
       [username, passwordHash, fullName, email, rolesJson]
     );
-    return await userRepository.findById(result.lastID);
+    return await userRepository.findById(result.id || result.lastID);
   }
 };
 

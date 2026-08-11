@@ -214,6 +214,21 @@ export const initPgSchema = async (client = null) => {
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
 
+    CREATE TABLE IF NOT EXISTS user_refresh_tokens (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      token_hash VARCHAR(64) UNIQUE NOT NULL,
+      issued_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      expires_at TIMESTAMP NOT NULL,
+      revoked_at TIMESTAMP NULL,
+      replaced_by_hash VARCHAR(64) NULL,
+      ip_address VARCHAR(45),
+      user_agent TEXT
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_refresh_token_hash ON user_refresh_tokens(token_hash);
+    CREATE INDEX IF NOT EXISTS idx_refresh_user_id ON user_refresh_tokens(user_id);
+
     CREATE TABLE IF NOT EXISTS farmers (
       id SERIAL PRIMARY KEY,
       farmer_code VARCHAR(50) UNIQUE NOT NULL,
@@ -561,6 +576,21 @@ export const initSqliteSchema = async () => {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
+
+    CREATE TABLE IF NOT EXISTS user_refresh_tokens (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      token_hash TEXT UNIQUE NOT NULL,
+      issued_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      expires_at DATETIME NOT NULL,
+      revoked_at DATETIME NULL,
+      replaced_by_hash TEXT NULL,
+      ip_address TEXT,
+      user_agent TEXT
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_refresh_token_hash ON user_refresh_tokens(token_hash);
+    CREATE INDEX IF NOT EXISTS idx_refresh_user_id ON user_refresh_tokens(user_id);
 
     CREATE TABLE IF NOT EXISTS farmers (
       id INTEGER PRIMARY KEY AUTOINCREMENT,

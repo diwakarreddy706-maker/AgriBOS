@@ -21,6 +21,9 @@ import payablesController from './controllers/payablesController.js';
 import analyticsController from './controllers/analyticsController.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 
+import cookieParser from 'cookie-parser';
+import { securityHeaders, loginRateLimiter, refreshRateLimiter, verifyCsrf } from './middleware/security.js';
+
 dotenv.config();
 
 const app = express();
@@ -28,19 +31,35 @@ const PORT = process.env.PORT || 8080;
 
 const allowedOrigins = process.env.FRONTEND_URL
   ? [process.env.FRONTEND_URL, 'http://localhost:3000', 'http://localhost:5173']
-  : '*';
+  : ['http://localhost:3000', 'http://localhost:5173'];
 
+// Apply Helmet Security Headers & Cookie Parser
+app.use(securityHeaders);
+app.use(cookieParser());
+
+// Strict Production CORS Configuration
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins === '*' || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(null, true);
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
     }
+    if (process.env.NODE_ENV !== 'production' && (origin.includes('localhost') || origin.includes('127.0.0.1'))) {
+      return callback(null, true);
+    }
+    return callback(new Error('CORS Policy: Origin not allowed'));
   },
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
   credentials: true
 }));
-app.use(express.json());
+
+// Body parser with 1MB maximum payload limit
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+
+// Apply CSRF Protection Middleware for State-Changing Requests
+app.use(verifyCsrf);
 
 // API Routes
 const apiRouter = express.Router();
@@ -51,9 +70,10 @@ apiRouter.get('/health', (req, res) => {
   res.json({ status: 'UP', service: 'AgriBOS JavaScript Backend', timestamp: new Date().toISOString() });
 });
 
-// Authentication Routes (Public)
-apiRouter.post('/auth/login', authController.login);
-apiRouter.post('/auth/refresh', authController.refresh);
+// Authentication Routes (Public with Rate Limiting)
+apiRouter.post('/auth/login', loginRateLimiter, authController.login);
+apiRouter.post('/auth/refresh', refreshRateLimiter, authController.refresh);
+apiRouter.post('/auth/logout', authController.logout);
 
 // Authentication Routes (Protected)
 apiRouter.get('/auth/me', authenticateToken, authController.me);
