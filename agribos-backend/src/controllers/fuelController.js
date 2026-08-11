@@ -45,7 +45,7 @@ export const updateVoucherStatus = async (req, res, next) => {
 
 export const getFuelLogs = async (req, res, next) => {
   try {
-    const logs = await fuelService.getFuelLogs();
+    const logs = await fuelService.getFuelLogs(req.query);
     return sendSuccess(res, { content: logs }, 'Fuel logs retrieved');
   } catch (error) {
     next(error);

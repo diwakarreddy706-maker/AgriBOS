@@ -77,6 +77,7 @@ export const runInTransaction = async (callback) => {
 
 // Database Initialization
 export const initDb = async () => {
+  await exec('PRAGMA foreign_keys = ON;');
   const schema = `
     -- Users Table
     CREATE TABLE IF NOT EXISTS users (
@@ -427,6 +428,22 @@ export const initDb = async () => {
       is_deleted INTEGER DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
+
+    -- Machine Telematics History Table
+    CREATE TABLE IF NOT EXISTS machine_telematics_history (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      machine_id INTEGER NOT NULL,
+      latitude REAL NOT NULL,
+      longitude REAL NOT NULL,
+      speed REAL DEFAULT 0,
+      engine_hours REAL DEFAULT 0,
+      recorded_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      source TEXT DEFAULT 'TELEMATICS_API',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (machine_id) REFERENCES machines(id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_telematics_machine_id ON machine_telematics_history(machine_id);
+    CREATE INDEX IF NOT EXISTS idx_telematics_recorded_at ON machine_telematics_history(recorded_at);
   `;
 
   await exec(schema);
@@ -452,6 +469,58 @@ export const initDb = async () => {
   if (!machineColNames.includes('is_deleted')) {
     await exec("ALTER TABLE machines ADD COLUMN is_deleted INTEGER DEFAULT 0");
   }
+  if (!machineColNames.includes('latitude')) {
+    await exec("ALTER TABLE machines ADD COLUMN latitude REAL");
+  }
+  if (!machineColNames.includes('longitude')) {
+    await exec("ALTER TABLE machines ADD COLUMN longitude REAL");
+  }
+  if (!machineColNames.includes('speed')) {
+    await exec("ALTER TABLE machines ADD COLUMN speed REAL DEFAULT 0");
+  }
+  if (!machineColNames.includes('last_gps_update')) {
+    await exec("ALTER TABLE machines ADD COLUMN last_gps_update DATETIME");
+  }
+  if (!machineColNames.includes('next_service_hours')) {
+    await exec("ALTER TABLE machines ADD COLUMN next_service_hours REAL DEFAULT 250");
+  }
+  if (!machineColNames.includes('service_interval_hours')) {
+    await exec("ALTER TABLE machines ADD COLUMN service_interval_hours REAL DEFAULT 250");
+  }
+  if (!machineColNames.includes('service_status')) {
+    await exec("ALTER TABLE machines ADD COLUMN service_status TEXT DEFAULT 'OK'");
+  }
+
+  // Receipt Image URL Column Checks for Expenses
+  const fuelCols = await query("PRAGMA table_info(fuel_logs)");
+  if (!fuelCols.map(c => c.name).includes('receipt_image_url')) {
+    await exec("ALTER TABLE fuel_logs ADD COLUMN receipt_image_url TEXT");
+  }
+
+  const maintCols = await query("PRAGMA table_info(maintenance_jobs)");
+  if (!maintCols.map(c => c.name).includes('receipt_image_url')) {
+    await exec("ALTER TABLE maintenance_jobs ADD COLUMN receipt_image_url TEXT");
+  }
+
+  const cashbookCols = await query("PRAGMA table_info(cashbook_entries)");
+  if (!cashbookCols.map(c => c.name).includes('receipt_image_url')) {
+    await exec("ALTER TABLE cashbook_entries ADD COLUMN receipt_image_url TEXT");
+  }
+
+  const workCols = await query("PRAGMA table_info(work_entries)");
+  if (!workCols.map(c => c.name).includes('machine_id')) {
+    await exec("ALTER TABLE work_entries ADD COLUMN machine_id INTEGER");
+  }
+
+  const ownerCols = await query("PRAGMA table_info(machine_owners)");
+  const ownerNames = ownerCols.map(c => c.name);
+  if (!ownerNames.includes('alternate_phone')) await exec("ALTER TABLE machine_owners ADD COLUMN alternate_phone TEXT");
+  if (!ownerNames.includes('address')) await exec("ALTER TABLE machine_owners ADD COLUMN address TEXT");
+  if (!ownerNames.includes('bank_name')) await exec("ALTER TABLE machine_owners ADD COLUMN bank_name TEXT");
+  if (!ownerNames.includes('account_no')) await exec("ALTER TABLE machine_owners ADD COLUMN account_no TEXT");
+  if (!ownerNames.includes('ifsc_code')) await exec("ALTER TABLE machine_owners ADD COLUMN ifsc_code TEXT");
+  if (!ownerNames.includes('upi_id')) await exec("ALTER TABLE machine_owners ADD COLUMN upi_id TEXT");
+  if (!ownerNames.includes('village_name')) await exec("ALTER TABLE machine_owners ADD COLUMN village_name TEXT");
 
   // Seed default Admin User if not present
   const adminUser = await get('SELECT * FROM users WHERE username = ?', ['admin']);

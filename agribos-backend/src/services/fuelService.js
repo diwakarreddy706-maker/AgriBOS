@@ -17,8 +17,8 @@ export const fuelService = {
     return fuelRepository.updateVoucherStatus(id, status);
   },
 
-  getFuelLogs: async () => {
-    return fuelRepository.getFuelLogs();
+  getFuelLogs: async (query) => {
+    return fuelRepository.getFuelLogs(query || {});
   },
 
   logFuel: async (data) => {

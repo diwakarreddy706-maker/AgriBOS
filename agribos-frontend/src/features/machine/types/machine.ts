@@ -12,6 +12,13 @@ export interface Machine {
   hourlyRateDefault: number;
   acreRateDefault: number;
   status: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  speed?: number;
+  lastGpsUpdate?: string | null;
+  nextServiceHours?: number;
+  serviceIntervalHours?: number;
+  serviceStatus?: 'OK' | 'SERVICE_DUE' | 'OVERDUE';
   createdAt?: string;
 }
 
@@ -26,4 +33,6 @@ export interface MachineCreateInput {
   engineHours?: number;
   hourlyRateDefault: number;
   acreRateDefault: number;
+  nextServiceHours?: number;
+  serviceIntervalHours?: number;
 }

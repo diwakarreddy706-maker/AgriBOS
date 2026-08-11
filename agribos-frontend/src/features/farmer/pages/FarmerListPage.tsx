@@ -355,7 +355,7 @@ export const FarmerListPage: React.FC = () => {
                 </p>
               </div>
 
-              <div className="bg-slate-800/80 p-4 rounded-2xl border border-red-900/40 bg-red-950/20 backdrop-blur-xs">
+              <div className="bg-red-950/20 p-4 rounded-2xl border border-red-900/40 backdrop-blur-xs">
                 <p className="text-[10px] font-black text-red-400 uppercase tracking-wider">BALANCE DUE (UDHAR)</p>
                 <h3 className="text-2xl font-black text-red-400 mt-1 font-mono">
                   ₹{(selectedFarmer.totalBalanceDue || 0).toLocaleString()}

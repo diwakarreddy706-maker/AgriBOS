@@ -1,23 +1,33 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { rentedOwnerSettlementApi } from '../api/rentedOwnerSettlementApi';
+import { machineOwnerApi } from '../api/machineOwnerApi';
 import { RentedOwnerSettlementLedger } from '../types/rentedOwnerSettlement';
-import { 
-  Printer, 
-  Search, 
-  DollarSign, 
-  Phone, 
-  Building2, 
-  CheckCircle2, 
-  X
+import { MachineOwnerFormDialog } from '../components/MachineOwnerFormDialog';
+import { Button } from '../../../components/ui/Button';
+import {
+  Printer,
+  Search,
+  DollarSign,
+  Phone,
+  Building2,
+  CheckCircle2,
+  X,
+  Plus,
+  Users,
+  CreditCard,
+  Trash2,
+  Building
 } from 'lucide-react';
 
 export const RentedOwnerSettlementLedgerPage: React.FC = () => {
   const queryClient = useQueryClient();
+  const [activeTab, setActiveTab] = useState<'settlement' | 'directory'>('settlement');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedOwnerId, setSelectedOwnerId] = useState<number | null>(1);
+  const [selectedOwnerId, setSelectedOwnerId] = useState<number | null>(null);
+  const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
 
-  // Modal states
+  // Modal states for payout
   const [isPayoutModalOpen, setIsPayoutModalOpen] = useState(false);
   const [payoutAmount, setPayoutAmount] = useState<number>(0);
   const [paymentMode, setPaymentMode] = useState<'Bank Transfer' | 'UPI / PhonePe' | 'Cash'>('Bank Transfer');
@@ -26,25 +36,58 @@ export const RentedOwnerSettlementLedgerPage: React.FC = () => {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Query ledgers
-  const { data: ledgers = [], isLoading } = useQuery({
+  const { data: ledgers = [], isLoading: isLedgersLoading } = useQuery({
     queryKey: ['rentedOwnerLedgers', searchQuery],
     queryFn: () => rentedOwnerSettlementApi.getSettlementLedgers(searchQuery),
   });
 
+  // Query raw machine owners for directory tab
+  const { data: ownersData, isLoading: isOwnersLoading } = useQuery({
+    queryKey: ['machine-owners', searchQuery],
+    queryFn: () => machineOwnerApi.getOwners(searchQuery, 0, 100),
+  });
+
+  const safeLedgers = Array.isArray(ledgers) ? ledgers : [];
+  const rawOwners = Array.isArray(ownersData?.content) ? ownersData.content : Array.isArray(ownersData) ? ownersData : [];
+
   // Selected owner ledger with fallback
-  const selectedLedger: RentedOwnerSettlementLedger | undefined = 
-    ledgers.find(l => l.id === selectedOwnerId) || ledgers[0];
+  const selectedLedger: RentedOwnerSettlementLedger | undefined =
+    safeLedgers.find(l => l.id === selectedOwnerId) || safeLedgers[0];
 
   // Payout mutation
   const payoutMutation = useMutation({
     mutationFn: rentedOwnerSettlementApi.recordOwnerPayout,
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['rentedOwnerLedgers'] });
+      queryClient.invalidateQueries({ queryKey: ['machine-owners'] });
       setIsPayoutModalOpen(false);
       setPayoutAmount(0);
       setReferenceNo('');
       setPayoutNotes('');
       setToastMessage(`Payment of ₹${payoutAmount.toLocaleString()} recorded for ${data.ownerName}`);
+      setTimeout(() => setToastMessage(null), 4000);
+    },
+  });
+
+  // Create owner mutation
+  const createOwnerMutation = useMutation({
+    mutationFn: machineOwnerApi.createOwner,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['rentedOwnerLedgers'] });
+      queryClient.invalidateQueries({ queryKey: ['machine-owners'] });
+      setIsRegisterModalOpen(false);
+      setToastMessage('New Rented Fleet Owner registered successfully!');
+      setTimeout(() => setToastMessage(null), 4000);
+    },
+  });
+
+  // Delete owner mutation
+  const deleteOwnerMutation = useMutation({
+    mutationFn: machineOwnerApi.deleteOwner,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['rentedOwnerLedgers'] });
+      queryClient.invalidateQueries({ queryKey: ['machine-owners'] });
+      setToastMessage('Owner record deleted successfully.');
       setTimeout(() => setToastMessage(null), 4000);
     },
   });
@@ -78,7 +121,7 @@ export const RentedOwnerSettlementLedgerPage: React.FC = () => {
 
       {/* Toast Feedback */}
       {toastMessage && (
-        <div className="fixed bottom-5 right-5 z-50 bg-emerald-600 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center space-x-3 text-xs font-bold animate-bounce border border-emerald-400">
+        <div className="fixed bottom-5 right-5 z-50 bg-emerald-600 text-white px-4 py-3 rounded-2xl shadow-2xl flex items-center space-x-3 text-xs font-bold border border-emerald-400">
           <CheckCircle2 className="w-5 h-5 text-emerald-200" />
           <span>{toastMessage}</span>
         </div>
@@ -88,393 +131,371 @@ export const RentedOwnerSettlementLedgerPage: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-emerald-900/10 via-slate-900/5 to-transparent p-5 rounded-3xl border border-emerald-500/10 backdrop-blur-xs">
         <div>
           <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white uppercase flex items-center gap-2">
-            <span>RENTED OWNER SETTLEMENT LEDGER</span>
+            <span>RENTED FLEET OWNERS 360°</span>
             <span className="text-xs font-black bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 px-3 py-1 rounded-full border border-emerald-500/30">
               ಮಾಲೀಕರ ಖಾತೆ
             </span>
           </h1>
           <p className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">
-            Audit seasonal harvesting revenue, company commissions, fuel deductions, and disburse net owner settlement payouts.
+            Manage seasonal rented harvester owners, bank accounts, fuel deductions, and net settlement payouts.
           </p>
         </div>
 
-        <div className="flex items-center space-x-3 shrink-0 self-start md:self-auto">
+        <div className="flex flex-wrap items-center gap-3 shrink-0 self-start md:self-auto">
+          <button
+            onClick={() => setIsRegisterModalOpen(true)}
+            className="flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold px-4 py-2.5 rounded-2xl text-xs transition-all shadow-md shadow-emerald-600/20 hover:scale-105 active:scale-95 cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>+ Register Rented Owner</span>
+          </button>
+
           <button
             onClick={handlePrint}
-            className="flex items-center space-x-2 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 font-bold px-4 py-2.5 rounded-2xl text-xs border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all shadow-xs"
+            className="flex items-center space-x-2 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 font-bold px-4 py-2.5 rounded-2xl text-xs border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all shadow-xs cursor-pointer"
           >
             <Printer className="w-4 h-4 text-slate-400" />
             <span>Print Statement</span>
           </button>
 
-          <button
-            onClick={handleOpenPayout}
-            className="flex items-center space-x-2 bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold px-5 py-2.5 rounded-2xl text-xs transition-all shadow-md shadow-emerald-500/20 hover:scale-105 active:scale-95"
-          >
-            <DollarSign className="w-4 h-4" />
-            <span>Pay Owner Settlement ₹</span>
-          </button>
+          {selectedLedger && (
+            <button
+              onClick={handleOpenPayout}
+              className="flex items-center space-x-2 bg-slate-900 hover:bg-slate-800 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white font-extrabold px-4 py-2.5 rounded-2xl text-xs transition-all shadow-md shadow-slate-900/20 hover:scale-105 active:scale-95 cursor-pointer"
+            >
+              <DollarSign className="w-4 h-4 text-emerald-400 dark:text-white" />
+              <span>Pay Owner Settlement ₹</span>
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Search Input & Owner Cards Selector */}
-      <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
-        
-        {/* Search Bar */}
+      {/* Tabs Navigation */}
+      <div className="flex items-center space-x-2 bg-slate-100 dark:bg-slate-900 p-1.5 rounded-2xl border border-slate-200/80 dark:border-slate-800 w-fit">
+        <button
+          onClick={() => setActiveTab('settlement')}
+          className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
+            activeTab === 'settlement'
+              ? 'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-sm border border-slate-200/60 dark:border-slate-700'
+              : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+          }`}
+        >
+          <CreditCard className="w-4 h-4" />
+          <span>Settlement Payout Ledger</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('directory')}
+          className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
+            activeTab === 'directory'
+              ? 'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-sm border border-slate-200/60 dark:border-slate-700'
+              : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+          }`}
+        >
+          <Users className="w-4 h-4" />
+          <span>Owner Directory & Bank Register ({rawOwners.length})</span>
+        </button>
+      </div>
+
+      {/* SEARCH BAR */}
+      <div className="bg-white dark:bg-slate-900 p-4 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xs">
         <div className="relative">
           <Search className="w-4 h-4 absolute left-4 top-3.5 text-slate-400" />
           <input
             type="text"
-            placeholder="Search Rented Owner by Name, Phone Number (e.g. 9008623974), Code..."
+            placeholder="Search Rented Owner by Name, Phone Number, Code, Bank..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700 rounded-2xl text-xs font-semibold text-slate-800 dark:text-slate-100 focus:outline-hidden focus:ring-2 focus:ring-emerald-500 transition-all"
           />
         </div>
-
-        {/* Owner Selector Carousel Cards */}
-        <div className="flex items-center space-x-3 overflow-x-auto pt-1 pb-2 scrollbar-thin">
-          {isLoading ? (
-            <div className="text-xs text-slate-400 py-3">Loading owner settlement records...</div>
-          ) : ledgers.length === 0 ? (
-            <div className="text-xs text-slate-400 py-3">No owners found matching query.</div>
-          ) : (
-            ledgers.map((owner) => {
-              const isSelected = selectedLedger?.id === owner.id;
-              return (
-                <button
-                  key={owner.id}
-                  onClick={() => setSelectedOwnerId(owner.id)}
-                  className={`flex flex-col p-3.5 rounded-2xl border text-left min-w-[250px] transition-all shrink-0 cursor-pointer ${
-                    isSelected
-                      ? 'bg-gradient-to-br from-emerald-500 to-emerald-600 text-white border-emerald-600 shadow-lg shadow-emerald-500/20 scale-[1.02]'
-                      : 'bg-slate-50 dark:bg-slate-800/60 text-slate-800 dark:text-slate-200 border-slate-200/80 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
-                  }`}
-                >
-                  <div className="flex justify-between items-center">
-                    <span className={`text-[10px] font-black uppercase font-mono px-2 py-0.5 rounded-md ${isSelected ? 'bg-emerald-700/60 text-emerald-100' : 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400'}`}>
-                      {owner.ownerCode}
-                    </span>
-                    <span className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase ${
-                      isSelected ? 'bg-white text-emerald-700 shadow-xs' : 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300'
-                    }`}>
-                      PAYOUT: ₹{owner.netOwnerPayable.toLocaleString()}
-                    </span>
-                  </div>
-
-                  <h4 className="text-xs font-black mt-2 truncate">{owner.ownerName}</h4>
-                  <p className={`text-[11px] font-medium truncate mt-0.5 ${isSelected ? 'text-emerald-100' : 'text-slate-500 dark:text-slate-400'}`}>
-                    {owner.machineUnitName}
-                  </p>
-                </button>
-              );
-            })
-          )}
-        </div>
-
       </div>
 
-      {/* Selected Owner Dark Banner Box */}
-      {selectedLedger ? (
+      {/* TAB 1: SETTLEMENT PAYOUT LEDGER */}
+      {activeTab === 'settlement' && (
         <div className="space-y-6">
-          <div className="bg-gradient-to-br from-[#0b1329] via-slate-900 to-[#0d1f3d] text-white p-6 rounded-3xl shadow-xl border border-slate-800 space-y-6 relative overflow-hidden">
-            
-            {/* Ambient Lighting */}
-            <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
-            {/* Top Row: Owner Info & Audit Status */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-slate-800/80 relative z-10">
-              <div className="flex items-center space-x-4">
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-500 to-emerald-400 text-white font-black text-2xl flex items-center justify-center shadow-lg shadow-emerald-500/30 border border-emerald-300/30 shrink-0">
-                  {selectedLedger.ownerName.charAt(0)}
-                </div>
-
-                <div>
-                  <div className="flex items-center space-x-2">
-                    <h2 className="text-2xl font-black tracking-tight">{selectedLedger.ownerName}</h2>
-                    <span className="text-[10px] font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2.5 py-0.5 rounded-full font-mono">
-                      {selectedLedger.ownerCode}
-                    </span>
-                  </div>
-
-                  <p className="text-xs text-slate-300 font-semibold mt-0.5">
-                    Machine Unit: {selectedLedger.machineUnitName}
-                  </p>
-
-                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-300 mt-1 font-medium">
-                    <span className="flex items-center space-x-1">
-                      <Phone className="w-3.5 h-3.5 text-emerald-400" />
-                      <span className="font-mono font-bold">{selectedLedger.mobileNumber}</span>
-                    </span>
-                    <span>•</span>
-                    <span className="flex items-center space-x-1">
-                      <Building2 className="w-3.5 h-3.5 text-emerald-400" />
-                      <span className="font-mono">{selectedLedger.bankName} (A/C: {selectedLedger.accountNumber} • IFSC: {selectedLedger.ifscCode})</span>
-                    </span>
-                  </div>
-                </div>
+          {/* Owner Carousel Selector */}
+          {isLedgersLoading ? (
+            <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 text-center text-xs text-slate-400">
+              Loading owner settlement records...
+            </div>
+          ) : safeLedgers.length === 0 ? (
+            /* Rich Empty State Card */
+            <div className="bg-white dark:bg-slate-900 p-10 rounded-3xl border border-slate-200 dark:border-slate-800 text-center space-y-4 shadow-xs">
+              <div className="w-16 h-16 rounded-3xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 flex items-center justify-center mx-auto">
+                <Users className="w-8 h-8" />
               </div>
+              <div className="max-w-md mx-auto">
+                <h3 className="text-base font-black text-slate-900 dark:text-slate-100">
+                  No Rented Machine Owners Registered Yet
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  Register third-party rented combine harvester owners to track seasonal harvesting work, company commissions, fuel deductions, and disburse bank payouts.
+                </p>
+              </div>
+              <button
+                onClick={() => setIsRegisterModalOpen(true)}
+                className="inline-flex items-center space-x-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold px-5 py-3 rounded-2xl text-xs transition-all shadow-md shadow-emerald-600/20 cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                <span>+ Register First Rented Fleet Owner</span>
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center space-x-3 overflow-x-auto pt-1 pb-2 scrollbar-thin">
+              {safeLedgers.map((owner) => {
+                const isSelected = selectedLedger?.id === owner.id;
+                return (
+                  <button
+                    key={owner.id}
+                    onClick={() => setSelectedOwnerId(owner.id)}
+                    className={`flex flex-col p-3.5 rounded-2xl border text-left min-w-[250px] transition-all shrink-0 cursor-pointer ${
+                      isSelected
+                        ? 'bg-gradient-to-br from-emerald-500 to-emerald-600 text-white border-emerald-600 shadow-lg shadow-emerald-500/20 scale-[1.02]'
+                        : 'bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 border-slate-200/80 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800'
+                    }`}
+                  >
+                    <div className="flex justify-between items-center">
+                      <span className={`text-[10px] font-black uppercase font-mono px-2 py-0.5 rounded-md ${isSelected ? 'bg-emerald-700/60 text-emerald-100' : 'bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400'}`}>
+                        {owner.ownerCode}
+                      </span>
+                      <span className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase ${
+                        isSelected ? 'bg-white text-emerald-700 shadow-xs' : 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300'
+                      }`}>
+                        PAYOUT: ₹{(owner.netOwnerPayable || 0).toLocaleString()}
+                      </span>
+                    </div>
 
-              {/* Status Badge & Disburse Button */}
-              <div className="flex items-center space-x-3 self-start md:self-auto">
-                <button
-                  onClick={handleOpenPayout}
-                  className="bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold px-4 py-2 rounded-xl text-xs transition-all shadow-md hover:scale-105"
-                >
-                  Disburse Payout ₹
-                </button>
+                    <h4 className="text-xs font-black mt-2 truncate">{owner.ownerName}</h4>
+                    <p className={`text-[11px] font-medium truncate mt-0.5 ${isSelected ? 'text-emerald-100' : 'text-slate-500 dark:text-slate-400'}`}>
+                      {owner.machineUnitName || owner.registrationOrMachineNo || 'Rented Combine Harvester'}
+                    </p>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Selected Owner Dark Settlement Audit Box */}
+          {selectedLedger && (
+            <div className="bg-gradient-to-br from-[#0b1329] via-slate-900 to-[#0d1f3d] text-white p-6 rounded-3xl shadow-xl border border-slate-800 space-y-6 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+
+              {/* Owner Info Bar */}
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-slate-800/80 relative z-10">
+                <div className="flex items-center space-x-4">
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-emerald-500 to-emerald-400 text-white font-black text-xl flex items-center justify-center shadow-lg shadow-emerald-500/30 border border-emerald-300/30 shrink-0">
+                    {(selectedLedger.ownerName || 'O').charAt(0)}
+                  </div>
+
+                  <div>
+                    <div className="flex items-center space-x-2">
+                      <h2 className="text-xl font-black tracking-tight">{selectedLedger.ownerName || 'Rented Owner'}</h2>
+                      <span className="text-[10px] font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2.5 py-0.5 rounded-full font-mono">
+                        {selectedLedger.ownerCode}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-300 font-semibold mt-0.5 flex items-center gap-3">
+                      <span className="flex items-center gap-1"><Phone className="w-3 h-3 text-slate-400" /> {selectedLedger.mobileNumber || 'N/A'}</span>
+                      <span className="flex items-center gap-1"><Building2 className="w-3 h-3 text-slate-400" /> {selectedLedger.bankName} ({selectedLedger.accountNumber})</span>
+                    </p>
+                  </div>
+                </div>
 
                 <div className="text-right">
-                  <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider block">
-                    AUDIT STATUS
-                  </span>
-                  <span className="inline-block mt-0.5 px-3 py-1 rounded-xl text-xs font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                  <div className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Net Payable Settlement</div>
+                  <div className="text-2xl font-black font-mono text-emerald-400">
+                    ₹{(selectedLedger.netOwnerPayable || 0).toLocaleString()}
+                  </div>
+                  <span className="text-[10px] font-bold text-emerald-300 bg-emerald-950/80 px-2 py-0.5 rounded-full border border-emerald-800">
                     {selectedLedger.auditStatus}
                   </span>
                 </div>
               </div>
+
+              {/* Settlement Financial Summary Cards */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 relative z-10">
+                <div className="bg-slate-800/60 p-4 rounded-2xl border border-slate-700/60">
+                  <div className="text-[10px] font-bold uppercase text-slate-400">Gross Work Billed</div>
+                  <div className="text-lg font-black font-mono text-white mt-1">₹{(selectedLedger.grossWorkBilled || 0).toLocaleString()}</div>
+                </div>
+
+                <div className="bg-slate-800/60 p-4 rounded-2xl border border-slate-700/60">
+                  <div className="text-[10px] font-bold uppercase text-amber-400">Company Commission</div>
+                  <div className="text-lg font-black font-mono text-amber-300 mt-1">₹{(selectedLedger.companyCommission || 0).toLocaleString()}</div>
+                </div>
+
+                <div className="bg-slate-800/60 p-4 rounded-2xl border border-slate-700/60">
+                  <div className="text-[10px] font-bold uppercase text-rose-400">Diesel Deduction</div>
+                  <div className="text-lg font-black font-mono text-rose-300 mt-1">₹{(selectedLedger.dieselDeduction || 0).toLocaleString()}</div>
+                </div>
+
+                <div className="bg-slate-800/60 p-4 rounded-2xl border border-slate-700/60">
+                  <div className="text-[10px] font-bold uppercase text-emerald-400">Advance Paid</div>
+                  <div className="text-lg font-black font-mono text-emerald-300 mt-1">₹{(selectedLedger.advancePaid || 0).toLocaleString()}</div>
+                </div>
+              </div>
             </div>
+          )}
 
-            {/* 5 Financial Summary Metric Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 relative z-10">
-              
-              {/* Gross Work Billed */}
-              <div className="bg-slate-900/90 p-4 rounded-2xl border border-slate-800 backdrop-blur-xs">
-                <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider">GROSS WORK BILLED</p>
-                <h3 className="text-xl font-black text-white mt-1 font-mono">
-                  ₹{selectedLedger.grossWorkBilled.toLocaleString()}
-                </h3>
-                <p className="text-[9px] text-slate-400 mt-1 font-semibold">Total machine revenue</p>
-              </div>
-
-              {/* Company Comm (15%) */}
-              <div className="bg-slate-900/90 p-4 rounded-2xl border border-slate-800 backdrop-blur-xs">
-                <p className="text-[9px] font-black text-amber-400 uppercase tracking-wider">COMPANY COMM (15%)</p>
-                <h3 className="text-xl font-black text-amber-400 mt-1 font-mono">
-                  -₹{selectedLedger.companyCommission.toLocaleString()}
-                </h3>
-                <p className="text-[9px] text-amber-300/70 mt-1 font-semibold">Platform brokerage</p>
-              </div>
-
-              {/* Diesel Deduction */}
-              <div className="bg-slate-900/90 p-4 rounded-2xl border border-slate-800 backdrop-blur-xs">
-                <p className="text-[9px] font-black text-sky-400 uppercase tracking-wider">DIESEL DEDUCTION</p>
-                <h3 className="text-xl font-black text-sky-400 mt-1 font-mono">
-                  -₹{selectedLedger.dieselDeduction.toLocaleString()}
-                </h3>
-                <p className="text-[9px] text-sky-300/70 mt-1 font-semibold">Company fuel tokens</p>
-              </div>
-
-              {/* Advance Paid */}
-              <div className="bg-slate-900/90 p-4 rounded-2xl border border-slate-800 backdrop-blur-xs">
-                <p className="text-[9px] font-black text-purple-400 uppercase tracking-wider">ADVANCE PAID</p>
-                <h3 className="text-xl font-black text-purple-400 mt-1 font-mono">
-                  -₹{selectedLedger.advancePaid.toLocaleString()}
-                </h3>
-                <p className="text-[9px] text-purple-300/70 mt-1 font-semibold">Upfront advances</p>
-              </div>
-
-              {/* Net Owner Payable */}
-              <div className="bg-slate-900/90 p-4 rounded-2xl border border-emerald-500/40 bg-emerald-950/30 col-span-2 md:col-span-1 backdrop-blur-xs">
-                <p className="text-[9px] font-black text-emerald-400 uppercase tracking-wider">NET OWNER PAYABLE</p>
-                <h3 className="text-2xl font-black text-emerald-400 mt-1 font-mono">
-                  ₹{selectedLedger.netOwnerPayable.toLocaleString()}
-                </h3>
-                <p className="text-[9px] text-emerald-300/80 mt-1 font-semibold">Final net payout balance</p>
-              </div>
-
-            </div>
-
-          </div>
-
-          {/* Table: Work Executions & Payout Ledger */}
-          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden">
-            
-            <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-              <h3 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
-                <DollarSign className="w-4 h-4 text-emerald-600" />
-                <span>SEASONAL WORK EXECUTIONS & PAYOUT LEDGER FOR {selectedLedger.ownerName.toUpperCase()}</span>
-              </h3>
-              <span className="text-[11px] font-extrabold text-slate-400 font-mono">
-                {selectedLedger.workExecutions.length} Work Sessions Audited
-              </span>
-            </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 text-[10px] font-black text-slate-400 uppercase tracking-wider">
-                    <th className="p-4">WORK DATE</th>
-                    <th className="p-4">FARMER & VILLAGE</th>
-                    <th className="p-4">OPERATION & HOURS</th>
-                    <th className="p-4">GROSS BILL (₹)</th>
-                    <th className="p-4">COMMISSION (15%)</th>
-                    <th className="p-4">DIESEL DEDUCTION</th>
-                    <th className="p-4">NET OWNER PAYOUT (₹)</th>
-                    <th className="p-4 text-center">STATUS</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs font-medium text-slate-800 dark:text-slate-200">
-                  {selectedLedger.workExecutions.length === 0 ? (
-                    <tr>
-                      <td colSpan={8} className="p-8 text-center text-slate-400">No work sessions executed for this machine unit yet.</td>
-                    </tr>
-                  ) : (
-                    selectedLedger.workExecutions.map((entry) => (
-                      <tr key={entry.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors">
-                        
-                        {/* Work Date */}
-                        <td className="p-4 font-mono font-bold text-slate-700 dark:text-slate-300">
-                          {entry.workDate}
-                        </td>
-
-                        {/* Farmer & Village */}
-                        <td className="p-4">
-                          <div className="font-extrabold text-slate-900 dark:text-white">{entry.farmerName}</div>
-                          <div className="text-[10px] text-slate-400 font-semibold">{entry.villageName}</div>
-                        </td>
-
-                        {/* Operation & Hours */}
-                        <td className="p-4">
-                          <div className="font-semibold text-slate-800 dark:text-slate-200">{entry.operationType}</div>
-                          <div className="text-[10px] text-slate-400 font-mono font-bold mt-0.5">{entry.hoursOrAcres}</div>
-                        </td>
-
-                        {/* Gross Bill */}
-                        <td className="p-4 font-mono font-extrabold text-slate-900 dark:text-slate-100">
-                          ₹{entry.grossBill.toLocaleString()}
-                        </td>
-
-                        {/* Commission */}
-                        <td className="p-4 font-mono font-bold text-amber-600 dark:text-amber-400">
-                          -₹{entry.commissionAmount.toLocaleString()}
-                        </td>
-
-                        {/* Diesel Deduction */}
-                        <td className="p-4 font-mono font-bold text-sky-600 dark:text-sky-400">
-                          -₹{entry.dieselDeduction.toLocaleString()}
-                        </td>
-
-                        {/* Net Owner Payout */}
-                        <td className="p-4 font-mono font-black text-emerald-600 dark:text-emerald-400 text-sm">
-                          ₹{entry.netOwnerPayout.toLocaleString()}
-                        </td>
-
-                        {/* Status */}
-                        <td className="p-4 text-center">
-                          <span className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-black text-[10px] px-2.5 py-1 rounded-lg uppercase border border-emerald-200 dark:border-emerald-800">
-                            {entry.status}
-                          </span>
-                        </td>
-
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-          </div>
-        </div>
-      ) : (
-        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-12 text-center space-y-3">
-          <Building2 className="w-10 h-10 text-slate-400 mx-auto" />
-          <p className="text-sm font-bold text-slate-700 dark:text-slate-300">No rented machine owners registered</p>
-          <p className="text-xs text-slate-400">Add rented machine owners to track seasonal settlement ledgers.</p>
         </div>
       )}
 
-      {/* Pay Owner Settlement Modal */}
-      {isPayoutModalOpen && selectedLedger && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 space-y-5">
-            
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-              <div>
-                <h3 className="text-sm font-black uppercase text-slate-900 dark:text-white">
-                  Pay Owner Settlement
-                </h3>
-                <p className="text-xs text-slate-400 font-bold mt-0.5">
-                  {selectedLedger.ownerName} ({selectedLedger.ownerCode})
-                </p>
-              </div>
-              <button 
-                onClick={() => setIsPayoutModalOpen(false)}
-                className="p-1 rounded-xl text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+      {/* TAB 2: OWNER DIRECTORY & BANK REGISTER */}
+      {activeTab === 'directory' && (
+        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden">
+          <div className="p-5 border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between">
+            <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100 flex items-center gap-2">
+              <Users className="w-4 h-4 text-emerald-600" />
+              <span>Rented Fleet Owners Register & Bank Accounts</span>
+            </h3>
+
+            <button
+              onClick={() => setIsRegisterModalOpen(true)}
+              className="flex items-center space-x-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-xl text-xs transition-all cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Register New Owner</span>
+            </button>
+          </div>
+
+          {isOwnersLoading ? (
+            <div className="p-8 text-center text-xs text-slate-500">Loading machine owners directory...</div>
+          ) : rawOwners.length === 0 ? (
+            <div className="p-10 text-center space-y-3">
+              <p className="text-xs text-slate-500">No machine owners recorded in database.</p>
+              <button
+                onClick={() => setIsRegisterModalOpen(true)}
+                className="bg-emerald-600 text-white font-bold px-4 py-2 rounded-xl text-xs"
               >
-                <X className="w-5 h-5" />
+                + Register First Owner
               </button>
             </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 font-semibold border-b border-slate-200 dark:border-slate-800">
+                  <tr>
+                    <th className="p-3">Owner Code</th>
+                    <th className="p-3">Full Name</th>
+                    <th className="p-3">Phone Number</th>
+                    <th className="p-3">Address</th>
+                    <th className="p-3">Bank Account / UPI Payout Info</th>
+                    <th className="p-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {rawOwners.map((o) => (
+                    <tr key={o.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                      <td className="p-3 font-mono font-bold text-emerald-600 dark:text-emerald-400">{o.ownerCode}</td>
+                      <td className="p-3 font-semibold text-slate-900 dark:text-slate-100">{o.fullName}</td>
+                      <td className="p-3 text-slate-600 dark:text-slate-300">{o.mobileNumber}</td>
+                      <td className="p-3 text-slate-500">{o.address}</td>
+                      <td className="p-3">
+                        <div className="flex items-center space-x-1.5 font-mono text-[11px]">
+                          <Building className="w-3.5 h-3.5 text-slate-400" />
+                          <span>{o.bankName ? `${o.bankName} (${o.accountNumber}) - ${o.ifscCode}` : o.upiId || 'N/A'}</span>
+                        </div>
+                      </td>
+                      <td className="p-3 text-right">
+                        <button
+                          onClick={() => deleteOwnerMutation.mutate(o.id)}
+                          className="p-1.5 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-lg transition-colors cursor-pointer"
+                          title="Delete Owner Record"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
 
-            <form onSubmit={handleSubmitPayout} className="space-y-4">
-              <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-1">
-                <p className="text-[10px] font-black uppercase text-slate-400">Bank Details for Payout</p>
-                <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                  {selectedLedger.bankName} - A/C: {selectedLedger.accountNumber}
-                </p>
-                <p className="text-[11px] text-slate-500 font-mono">IFSC: {selectedLedger.ifscCode}</p>
-              </div>
+      {/* REGISTER OWNER MODAL */}
+      <MachineOwnerFormDialog
+        isOpen={isRegisterModalOpen}
+        onClose={() => setIsRegisterModalOpen(false)}
+        onSubmit={async (data) => {
+          await createOwnerMutation.mutateAsync(data);
+        }}
+        isLoading={createOwnerMutation.isPending}
+      />
 
+      {/* PAYOUT MODAL */}
+      {isPayoutModalOpen && selectedLedger && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl relative space-y-4">
+            <button
+              onClick={() => setIsPayoutModalOpen(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div>
+              <h3 className="text-lg font-black text-slate-900 dark:text-white">Record Owner Settlement Payout</h3>
+              <p className="text-xs text-slate-500 mt-0.5">Disburse net seasonal settlement to {selectedLedger.ownerName}</p>
+            </div>
+
+            <form onSubmit={handleSubmitPayout} className="space-y-3">
               <div>
-                <label className="block text-xs font-black uppercase text-slate-500 mb-1">
-                  Payout Amount (₹)
-                </label>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Payout Amount (₹) *</label>
                 <input
                   type="number"
-                  required
-                  min={1}
                   value={payoutAmount}
                   onChange={(e) => setPayoutAmount(Number(e.target.value))}
-                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-base font-black font-mono text-emerald-600 focus:ring-2 focus:ring-emerald-500"
+                  className="w-full mt-1 p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-mono font-bold text-emerald-600 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
+                  required
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-black uppercase text-slate-500 mb-1">
-                  Payment Mode
-                </label>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Payment Mode</label>
                 <select
                   value={paymentMode}
-                  onChange={(e) => setPaymentMode(e.target.value as any)}
-                  className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs font-bold"
+                  onChange={(e: any) => setPaymentMode(e.target.value)}
+                  className="w-full mt-1 p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-800 dark:text-slate-200 focus:outline-hidden"
                 >
-                  <option value="Bank Transfer">Bank Transfer (NEFT/RTGS)</option>
-                  <option value="UPI / PhonePe">UPI / PhonePe</option>
+                  <option value="Bank Transfer">Bank Transfer (NEFT / RTGS)</option>
+                  <option value="UPI / PhonePe">UPI / PhonePe / GPay</option>
                   <option value="Cash">Cash Handover</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-xs font-black uppercase text-slate-500 mb-1">
-                  Transaction Reference / UTR Number
-                </label>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Bank Ref / Transaction UTR #</label>
                 <input
                   type="text"
-                  placeholder="e.g. UTR9988220192"
+                  placeholder="e.g. UTR4928104820"
                   value={referenceNo}
                   onChange={(e) => setReferenceNo(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs font-mono font-bold"
+                  className="w-full mt-1 p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-800 dark:text-slate-200 focus:outline-hidden"
                 />
               </div>
 
-              <div className="pt-2 flex justify-end space-x-3">
-                <button
-                  type="button"
-                  onClick={() => setIsPayoutModalOpen(false)}
-                  className="px-4 py-2.5 text-xs font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={payoutMutation.isPending}
-                  className="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-extrabold rounded-2xl shadow-md transition-all hover:scale-105"
-                >
-                  {payoutMutation.isPending ? 'Processing...' : 'Disburse Payout'}
-                </button>
+              <div>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300">Remarks / Seasonal Notes</label>
+                <textarea
+                  rows={2}
+                  placeholder="Optional settlement notes..."
+                  value={payoutNotes}
+                  onChange={(e) => setPayoutNotes(e.target.value)}
+                  className="w-full mt-1 p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-800 dark:text-slate-200 focus:outline-hidden"
+                />
+              </div>
+
+              <div className="flex justify-end space-x-3 pt-3">
+                <Button type="button" variant="outline" onClick={() => setIsPayoutModalOpen(false)}>Cancel</Button>
+                <Button type="submit" isLoading={payoutMutation.isPending} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+                  Confirm Payout ₹
+                </Button>
               </div>
             </form>
-
           </div>
         </div>
       )}
@@ -482,4 +503,3 @@ export const RentedOwnerSettlementLedgerPage: React.FC = () => {
     </div>
   );
 };
-

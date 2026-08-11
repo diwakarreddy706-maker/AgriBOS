@@ -1,8 +1,8 @@
 import maintenanceRepository from '../repositories/maintenanceRepository.js';
 
 export const maintenanceService = {
-  getJobCards: async () => {
-    const list = await maintenanceRepository.getJobCards();
+  getJobCards: async (query) => {
+    const list = await maintenanceRepository.getJobCards(query || {});
     return {
       content: list,
       page: 0,
@@ -17,8 +17,8 @@ export const maintenanceService = {
     return await maintenanceRepository.createJobCard(data);
   },
 
-  getDashboardMetrics: async () => {
-    return await maintenanceRepository.getDashboardMetrics();
+  getDashboardMetrics: async (query) => {
+    return await maintenanceRepository.getDashboardMetrics(query || {});
   }
 };
 

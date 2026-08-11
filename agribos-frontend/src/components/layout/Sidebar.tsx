@@ -29,7 +29,7 @@ export const Sidebar: React.FC = () => {
 
 
   return (
-    <aside className="w-64 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col justify-between hidden md:flex h-screen sticky top-0 overflow-y-auto">
+    <aside className="w-64 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex-col justify-between hidden md:flex h-screen sticky top-0 overflow-y-auto">
       <div className="p-4 space-y-5">
         
         {/* Brand Header: BASAVESHWARA ALABANUR / SINDHANUR */}
@@ -62,9 +62,9 @@ export const Sidebar: React.FC = () => {
 
         {/* MACHINE ERP Full Navigation Links */}
         <div className="space-y-1">
-          {/* Machines Fleet */}
+          {/* Tractors */}
           <NavLink
-            to="/machines"
+            to="/tractors"
             className={({ isActive }) =>
               `flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-colors ${
                 isActive
@@ -73,8 +73,38 @@ export const Sidebar: React.FC = () => {
               }`
             }
           >
-            <Tractor className="w-4 h-4 shrink-0" />
-            <span>{t.machines}</span>
+            <Tractor className="w-4 h-4 shrink-0 text-blue-500" />
+            <span>🚜 {t.tractors || 'Tractors'}</span>
+          </NavLink>
+
+          {/* Harvesting Machines */}
+          <NavLink
+            to="/harvesters"
+            className={({ isActive }) =>
+              `flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-colors ${
+                isActive
+                  ? 'bg-amber-600 text-white font-bold shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+              }`
+            }
+          >
+            <Sparkles className="w-4 h-4 shrink-0 text-amber-500" />
+            <span>🌾 {t.harvestingMachines || 'Harvesting Machines'}</span>
+          </NavLink>
+
+          {/* Combined Fleet Catalog */}
+          <NavLink
+            to="/machines"
+            className={({ isActive }) =>
+              `flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-colors ${
+                isActive
+                  ? 'bg-slate-700 text-white font-bold shadow-xs'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+              }`
+            }
+          >
+            <Tractor className="w-4 h-4 shrink-0 text-slate-400" />
+            <span>{t.machines} (All Fleet)</span>
           </NavLink>
 
           {/* Vehicle Compliance */}

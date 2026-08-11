@@ -14,20 +14,20 @@ jobs:
       - name: Checkout Source Code
         uses: actions/checkout@v4
 
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
         with:
-          java-version: '21'
-          distribution: 'temurin'
-          cache: 'maven'
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: ./agribos-backend/package-lock.json
 
-      - name: Backend Build & Run Unit Tests
+      - name: Install Backend Dependencies
         working-directory: ./agribos-backend
-        run: mvn clean test
+        run: npm ci || npm install
 
-      - name: Validate Backend Code Quality & Security Scan
+      - name: Run Backend Hardening & Real Business E2E Test Suite
         working-directory: ./agribos-backend
-        run: mvn compile
+        run: npm test
 
   frontend-build-test:
     name: Frontend Build, Lint & Type Check

@@ -28,23 +28,40 @@ interface Props {
   onClose: () => void;
   onSubmit: (data: MachineCreateInput) => Promise<void>;
   isLoading?: boolean;
+  categoryMode?: 'TRACTOR' | 'HARVESTER' | 'ALL';
 }
 
-export const MachineFormDialog: React.FC<Props> = ({ isOpen, onClose, onSubmit, isLoading }) => {
-  const { register, handleSubmit, watch, reset, formState: { errors } } = useForm<MachineFormData>({
+export const MachineFormDialog: React.FC<Props> = ({ isOpen, onClose, onSubmit, isLoading, categoryMode = 'ALL' }) => {
+  const defaultMachineType = categoryMode === 'TRACTOR' ? 'TRACTOR' : categoryMode === 'HARVESTER' ? 'COMBINE_HARVESTER' : 'HARVESTER';
+
+  const { register, handleSubmit, watch, reset, setValue, formState: { errors } } = useForm<MachineFormData>({
     resolver: zodResolver(machineSchema),
     defaultValues: {
-      machineType: 'HARVESTER',
+      machineType: defaultMachineType,
       ownershipType: 'OWNED',
-      hourlyRateDefault: 2400,
-      acreRateDefault: 1800,
+      hourlyRateDefault: categoryMode === 'TRACTOR' ? 1500 : 2400,
+      acreRateDefault: categoryMode === 'TRACTOR' ? 1200 : 1800,
     },
   });
+
+  React.useEffect(() => {
+    if (isOpen) {
+      setValue('machineType', defaultMachineType);
+      if (categoryMode === 'TRACTOR') {
+        setValue('ownershipType', 'OWNED');
+        setValue('hourlyRateDefault', 1500);
+        setValue('acreRateDefault', 1200);
+      } else if (categoryMode === 'HARVESTER') {
+        setValue('hourlyRateDefault', 2400);
+        setValue('acreRateDefault', 1800);
+      }
+    }
+  }, [isOpen, categoryMode, defaultMachineType, setValue]);
 
   const [apiError, setApiError] = React.useState<string | null>(null);
   const selectedOwnership = watch('ownershipType');
   const selectedMachineType = watch('machineType');
-  const isHarvester = selectedMachineType === 'HARVESTER' || selectedMachineType === 'COMBINE_HARVESTER';
+  const isHarvester = selectedMachineType === 'HARVESTER' || selectedMachineType === 'COMBINE_HARVESTER' || categoryMode === 'HARVESTER';
 
   if (!isOpen) return null;
 
@@ -53,7 +70,7 @@ export const MachineFormDialog: React.FC<Props> = ({ isOpen, onClose, onSubmit, 
       setApiError(null);
       const payload: MachineCreateInput = {
         ...data,
-        ownershipType: data.ownershipType as any,
+        ownershipType: categoryMode === 'TRACTOR' ? 'OWNED' : (data.ownershipType as any),
         registrationNumber: isHarvester ? 'N/A' : (data.registrationNumber || '')
       };
       await onSubmit(payload);
@@ -64,6 +81,18 @@ export const MachineFormDialog: React.FC<Props> = ({ isOpen, onClose, onSubmit, 
     }
   };
 
+  const title = categoryMode === 'TRACTOR'
+    ? 'Register New Tractor Fleet'
+    : categoryMode === 'HARVESTER'
+    ? 'Register New Harvesting Machine'
+    : 'Register New Machine Fleet 360°';
+
+  const subtitle = categoryMode === 'TRACTOR'
+    ? 'Company Owned Tractor, Rotavator, Baler & Implement Catalog'
+    : categoryMode === 'HARVESTER'
+    ? 'Owned vs Seasonal Rented Combine Harvester Catalog'
+    : 'Owned vs Seasonal Rented Harvester / Tractor Catalog';
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-lg shadow-2xl p-6 relative">
@@ -72,9 +101,9 @@ export const MachineFormDialog: React.FC<Props> = ({ isOpen, onClose, onSubmit, 
         </button>
 
         <h2 className="text-lg font-bold mb-1 text-slate-900 dark:text-slate-100">
-          Register New Machine Fleet 360°
+          {title}
         </h2>
-        <p className="text-xs text-slate-500 mb-4">Owned vs Seasonal Rented Harvester / Tractor Catalog</p>
+        <p className="text-xs text-slate-500 mb-4">{subtitle}</p>
 
         {apiError && (
           <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs font-bold rounded-xl mb-3">
@@ -87,19 +116,35 @@ export const MachineFormDialog: React.FC<Props> = ({ isOpen, onClose, onSubmit, 
             <div>
               <Label>Machine Type *</Label>
               <select className="w-full h-10 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 text-sm" {...register('machineType')}>
-                <option value="HARVESTER">Combine Harvester (No Reg No)</option>
-                <option value="TRACTOR">Tractor (Requires Reg No)</option>
-                <option value="ROTAVATOR">Rotavator / Implement</option>
-                <option value="BALER">Baler</option>
+                {categoryMode === 'TRACTOR' ? (
+                  <>
+                    <option value="TRACTOR">Tractor (Requires RTO Reg No)</option>
+                    <option value="ROTAVATOR">Rotavator</option>
+                    <option value="BALER">Baler</option>
+                    <option value="IMPLEMENT">Agricultural Implement</option>
+                  </>
+                ) : categoryMode === 'HARVESTER' ? (
+                  <>
+                    <option value="COMBINE_HARVESTER">Combine Harvester (No RTO Reg No)</option>
+                    <option value="HARVESTER">Field Harvester</option>
+                  </>
+                ) : (
+                  <>
+                    <option value="HARVESTER">Combine Harvester (No Reg No)</option>
+                    <option value="TRACTOR">Tractor (Requires Reg No)</option>
+                    <option value="ROTAVATOR">Rotavator / Implement</option>
+                    <option value="BALER">Baler</option>
+                  </>
+                )}
               </select>
             </div>
             <div>
               <Label>Registration Number {isHarvester ? '(N/A for Harvester)' : '*'}</Label>
-              <Input 
-                placeholder={isHarvester ? 'N/A (No Reg No for Harvester)' : 'e.g. KA-36 M 8821'} 
-                disabled={isHarvester} 
-                {...register('registrationNumber')} 
-                error={errors.registrationNumber?.message} 
+              <Input
+                placeholder={isHarvester ? 'N/A (No Reg No for Harvester)' : 'e.g. KA-36-T-1234'}
+                disabled={isHarvester}
+                {...register('registrationNumber')}
+                error={errors.registrationNumber?.message}
               />
             </div>
           </div>
@@ -107,18 +152,24 @@ export const MachineFormDialog: React.FC<Props> = ({ isOpen, onClose, onSubmit, 
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>Manual Machine Code (Optional)</Label>
-              <Input placeholder="e.g. MAC-HARV-001" {...register('machineCode')} />
+              <Input placeholder={categoryMode === 'TRACTOR' ? 'e.g. TRAC-575-01' : 'e.g. MAC-HARV-001'} {...register('machineCode')} />
             </div>
             <div>
               <Label>Ownership Type *</Label>
-              <select className="w-full h-10 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 text-sm" {...register('ownershipType')}>
-                <option value="OWNED">Company Owned Fleet</option>
-                <option value="RENTED">Seasonal Rented Fleet</option>
-              </select>
+              {categoryMode === 'TRACTOR' ? (
+                <select className="w-full h-10 rounded-md border border-slate-300 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 px-3 text-sm text-slate-700 dark:text-slate-300 font-semibold cursor-not-allowed" disabled {...register('ownershipType')}>
+                  <option value="OWNED">Company Owned Fleet (100% Owned)</option>
+                </select>
+              ) : (
+                <select className="w-full h-10 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 text-sm" {...register('ownershipType')}>
+                  <option value="OWNED">Company Owned Fleet</option>
+                  <option value="RENTED">Seasonal Rented Fleet</option>
+                </select>
+              )}
             </div>
           </div>
 
-          {selectedOwnership === 'RENTED' && (
+          {categoryMode !== 'TRACTOR' && selectedOwnership === 'RENTED' && (
             <div>
               <Label>Rented Machine Owner ID *</Label>
               <Input type="number" placeholder="Enter Owner ID (e.g. 1)" {...register('ownerId')} />
@@ -128,7 +179,7 @@ export const MachineFormDialog: React.FC<Props> = ({ isOpen, onClose, onSubmit, 
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label>Make & Model *</Label>
-              <Input placeholder="e.g. Kubota DC-68G" {...register('makeModel')} error={errors.makeModel?.message} />
+              <Input placeholder={categoryMode === 'TRACTOR' ? 'e.g. Mahindra 575 DI' : 'e.g. Kubota DC-68G'} {...register('makeModel')} error={errors.makeModel?.message} />
             </div>
             <div>
               <Label>Manufacture Year</Label>
@@ -139,15 +190,15 @@ export const MachineFormDialog: React.FC<Props> = ({ isOpen, onClose, onSubmit, 
           <div className="grid grid-cols-3 gap-3">
             <div>
               <Label>Engine Hours</Label>
-              <Input type="number" step="0.1" placeholder="450" {...register('engineHours')} />
+              <Input type="number" step="0.1" placeholder="100" {...register('engineHours')} />
             </div>
             <div>
               <Label>Hourly Rate (₹) *</Label>
-              <Input type="number" placeholder="2400" {...register('hourlyRateDefault')} />
+              <Input type="number" placeholder={categoryMode === 'TRACTOR' ? '1500' : '2400'} {...register('hourlyRateDefault')} />
             </div>
             <div>
               <Label>Per Acre Rate (₹) *</Label>
-              <Input type="number" placeholder="1800" {...register('acreRateDefault')} />
+              <Input type="number" placeholder={categoryMode === 'TRACTOR' ? '1200' : '1800'} {...register('acreRateDefault')} />
             </div>
           </div>
 

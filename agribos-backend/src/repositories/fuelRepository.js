@@ -106,8 +106,19 @@ export const fuelRepository = {
     return get('SELECT * FROM fuel_vouchers WHERE id = ?', [id]);
   },
 
-  getFuelLogs: async () => {
-    const rows = await query('SELECT * FROM fuel_logs WHERE is_deleted = 0 ORDER BY id DESC');
+  getFuelLogs: async ({ machineType } = {}) => {
+    let sql = 'SELECT * FROM fuel_logs WHERE is_deleted = 0';
+    if (machineType && machineType !== 'ALL') {
+      if (machineType === 'HARVESTER') {
+        sql += " AND machine_id IN (SELECT id FROM machines WHERE machine_type IN ('HARVESTER', 'COMBINE_HARVESTER'))";
+      } else if (machineType === 'TRACTOR') {
+        sql += " AND machine_id IN (SELECT id FROM machines WHERE machine_type IN ('TRACTOR', 'ROTAVATOR', 'BALER', 'IMPLEMENT'))";
+      } else {
+        sql += ` AND machine_id IN (SELECT id FROM machines WHERE machine_type = '${machineType}')`;
+      }
+    }
+    sql += ' ORDER BY id DESC';
+    const rows = await query(sql);
     return rows.map(r => ({
       id: r.id,
       ticketNumber: r.ticket_number,

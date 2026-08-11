@@ -36,7 +36,7 @@ export const deleteOwner = async (req, res, next) => {
 
 export const getSettlementLedger = async (req, res, next) => {
   try {
-    const ledgers = await machineOwnerService.getSettlementLedgers(req.query.search);
+    const ledgers = await machineOwnerService.getSettlementLedgers(req.query.search, req.query.machineType);
     return sendSuccess(res, ledgers, 'Machine owner settlement ledgers retrieved');
   } catch (error) {
     next(error);

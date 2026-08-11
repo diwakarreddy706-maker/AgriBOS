@@ -15,11 +15,7 @@ export const MachineHealthDashboardPage: React.FC = () => {
     queryFn: () => analyticsApi.getAllHealthScores(),
   });
 
-  const healthScores: MachineHealthScore[] = response?.data || [
-    { machineId: 101, healthScore: 95, healthStatus: 'EXCELLENT', totalBreakdownsCount: 0, mtbfHours: 140, mttrHours: 2.5, lastInspectionDate: '2026-07-20', nextServiceDueHours: 210, servicingCompliancePercentage: 98 },
-    { machineId: 102, healthScore: 78, healthStatus: 'GOOD', totalBreakdownsCount: 1, mtbfHours: 95, mttrHours: 4.0, lastInspectionDate: '2026-07-15', nextServiceDueHours: 180, servicingCompliancePercentage: 92 },
-    { machineId: 103, healthScore: 55, healthStatus: 'FAIR', totalBreakdownsCount: 3, mtbfHours: 45, mttrHours: 7.2, lastInspectionDate: '2026-07-10', nextServiceDueHours: 40, servicingCompliancePercentage: 85 },
-  ];
+  const healthScores: MachineHealthScore[] = response?.data || [];
 
   return (
     <div className="space-y-6">

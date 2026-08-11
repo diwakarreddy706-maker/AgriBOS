@@ -14,8 +14,8 @@ export const machineOwnerService = {
     return machineOwnerRepository.softDelete(id);
   },
 
-  getSettlementLedgers: async (search) => {
-    return machineOwnerRepository.getSettlementLedgers(search);
+  getSettlementLedgers: async (search, machineType) => {
+    return machineOwnerRepository.getSettlementLedgers(search, machineType);
   },
 
   recordOwnerPayout: async (input) => {

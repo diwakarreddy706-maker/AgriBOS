@@ -46,4 +46,19 @@ export const machineApi = {
   deleteMachine: async (id: number): Promise<void> => {
     await apiClient.delete(`/machines/${id}`);
   },
+
+  postTelematics: async (id: number, data: { latitude: number; longitude: number; speed?: number; engineHours?: number }): Promise<Machine> => {
+    const res = await apiClient.post<any>(`/machines/${id}/telematics`, data);
+    return res.data?.data || res.data;
+  },
+
+  getTelematicsHistory: async (id: number): Promise<any[]> => {
+    const res = await apiClient.get<any>(`/machines/${id}/telematics`);
+    return res.data?.data || res.data || [];
+  },
+
+  completeService: async (id: number): Promise<Machine> => {
+    const res = await apiClient.post<any>(`/machines/${id}/complete-service`);
+    return res.data?.data || res.data;
+  }
 };

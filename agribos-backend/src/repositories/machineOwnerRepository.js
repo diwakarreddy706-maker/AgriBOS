@@ -1,4 +1,4 @@
-import { get, query, run } from '../db/sqlite.js';
+import { get, query, run, runInTransaction } from '../db/sqlite.js';
 
 export const machineOwnerRepository = {
   findAll: async ({ search, page = 0, size = 10 }) => {
@@ -79,13 +79,22 @@ export const machineOwnerRepository = {
     return run('UPDATE machine_owners SET is_deleted = 1, deleted_at = CURRENT_TIMESTAMP WHERE id = ?', [id]);
   },
 
-  getSettlementLedgers: async (search) => {
+  getSettlementLedgers: async (search, machineType) => {
     let sql = 'SELECT * FROM machine_owners WHERE is_deleted = 0';
     const params = [];
     if (search) {
       const q = `%${search}%`;
       sql += ' AND (full_name LIKE ? OR owner_code LIKE ? OR mobile_number LIKE ?)';
       params.push(q, q, q);
+    }
+    if (machineType && machineType !== 'ALL') {
+      if (machineType === 'HARVESTER') {
+        sql += " AND id IN (SELECT owner_id FROM machines WHERE machine_type IN ('HARVESTER', 'COMBINE_HARVESTER'))";
+      } else if (machineType === 'TRACTOR') {
+        sql += " AND id IN (SELECT owner_id FROM machines WHERE machine_type IN ('TRACTOR', 'ROTAVATOR', 'BALER', 'IMPLEMENT'))";
+      } else {
+        sql += ` AND id IN (SELECT owner_id FROM machines WHERE machine_type = '${machineType}')`;
+      }
     }
     sql += ' ORDER BY id DESC';
     const owners = await query(sql, params);

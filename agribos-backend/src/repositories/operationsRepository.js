@@ -201,5 +201,19 @@ export const operationsRepository = {
 
       return get('SELECT * FROM work_entries WHERE id = ?', [result.id]);
     });
+  },
+
+  assignOperator: async (bookingId, operatorEmployeeId, driverEmployeeId) => {
+    return runInTransaction(async () => {
+      await run('UPDATE dispatches SET operator_id = ?, driver_id = ? WHERE booking_id = ?', [operatorEmployeeId, driverEmployeeId || null, bookingId]);
+      return get('SELECT * FROM bookings WHERE id = ?', [bookingId]);
+    });
+  },
+
+  recordAdvancePayment: async (bookingId, advanceAmount) => {
+    return runInTransaction(async () => {
+      await run('UPDATE work_entries SET advance_amount = IFNULL(advance_amount, 0) + ?, paid_amount = IFNULL(paid_amount, 0) + ? WHERE farmer_id = (SELECT farmer_id FROM bookings WHERE id = ?)', [advanceAmount, advanceAmount, bookingId]);
+      return get('SELECT * FROM bookings WHERE id = ?', [bookingId]);
+    });
   }
 };

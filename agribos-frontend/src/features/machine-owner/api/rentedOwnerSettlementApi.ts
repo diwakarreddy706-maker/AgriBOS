@@ -4,17 +4,18 @@ import { apiClient } from '../../../lib/apiClient';
 export const rentedOwnerSettlementApi = {
   getSettlementLedgers: async (search?: string): Promise<RentedOwnerSettlementLedger[]> => {
     try {
-      const res = await apiClient.get<RentedOwnerSettlementLedger[]>('/machine-owners/settlement-ledger', {
+      const res = await apiClient.get<any>('/machine-owners/settlement-ledger', {
         params: { search }
       });
-      return res.data || [];
+      const data = res.data?.data || res.data;
+      return Array.isArray(data) ? data : [];
     } catch {
       return [];
     }
   },
 
   recordOwnerPayout: async (input: OwnerPayoutInput): Promise<RentedOwnerSettlementLedger> => {
-    const res = await apiClient.post<RentedOwnerSettlementLedger>('/machine-owners/payout', input);
-    return res.data;
+    const res = await apiClient.post<any>('/machine-owners/payout', input);
+    return res.data?.data || res.data;
   }
 };

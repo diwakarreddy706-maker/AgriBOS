@@ -71,6 +71,26 @@ export const logWorkExecution = async (req, res, next) => {
   }
 };
 
+export const assignOperator = async (req, res, next) => {
+  try {
+    const { bookingId, operatorEmployeeId, driverEmployeeId } = req.body;
+    const booking = await operationsService.assignOperator(bookingId, operatorEmployeeId, driverEmployeeId);
+    return sendSuccess(res, booking, 'Operator assigned to booking');
+  } catch (error) {
+    return sendError(res, error.message, 400);
+  }
+};
+
+export const recordAdvancePayment = async (req, res, next) => {
+  try {
+    const { advanceAmount } = req.body;
+    const booking = await operationsService.recordAdvancePayment(req.params.id, advanceAmount);
+    return sendSuccess(res, booking, 'Advance payment recorded');
+  } catch (error) {
+    return sendError(res, error.message, 400);
+  }
+};
+
 export default {
   getDashboardMetrics,
   getBookings,
@@ -78,5 +98,7 @@ export default {
   updateBookingStatus,
   assignMachine,
   createDispatch,
-  logWorkExecution
+  logWorkExecution,
+  assignOperator,
+  recordAdvancePayment
 };

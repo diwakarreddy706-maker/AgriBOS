@@ -26,16 +26,16 @@ export const FuelVoucherListPage: React.FC = () => {
 
   // Form State for Log Fuel Purchase
   const [formData, setFormData] = useState({
-    machineId: 101,
-    machineName: 'Kubota MU5502 (KA-36 M 4412)',
-    operatorId: 201,
-    operatorName: 'Ramesh Gowda (Harvester)',
-    logDateTime: '2026-07-29T03:38',
-    hourMeter: 1420,
+    machineId: 0,
+    machineName: '',
+    operatorId: 0,
+    operatorName: '',
+    logDateTime: new Date().toISOString().slice(0, 16),
+    hourMeter: 0,
     fuelType: 'Diesel' as 'Diesel' | 'Petrol' | 'AdBlue / DEF',
-    quantityLiters: 50,
+    quantityLiters: 0,
     pricePerLiter: 92.50,
-    vendorStation: 'Shell Station Sindhanur',
+    vendorStation: '',
     remarks: ''
   });
 

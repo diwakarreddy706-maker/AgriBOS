@@ -416,67 +416,67 @@ reviews:
 
         Do not rewrite documentation unnecessarily.
 
-# ============================================================
-# PRE-MERGE CHECKS
-# ============================================================
+  # ============================================================
+  # PRE-MERGE CHECKS
+  # ============================================================
 
-pre_merge_checks:
-  # Keep docstring enforcement disabled for now.
-  # AgriBOS is actively evolving and documentation coverage
-  # should not block development.
-  docstrings:
-    mode: "off"
+  pre_merge_checks:
+    # Keep docstring enforcement disabled for now.
+    # AgriBOS is actively evolving and documentation coverage
+    # should not block development.
+    docstrings:
+      mode: "off"
 
-  # Enforce concise, meaningful PR titles.
-  title:
-    mode: "warning"
-    requirements: |
-      PR titles should be concise, descriptive, and action-oriented.
-      Prefer conventional prefixes when appropriate, such as:
-      feat:, fix:, refactor:, docs:, test:, chore:, ci:, perf:.
-      Keep titles ideally below 72 characters.
+    # Enforce concise, meaningful PR titles.
+    title:
+      mode: "warning"
+      requirements: |
+        PR titles should be concise, descriptive, and action-oriented.
+        Prefer conventional prefixes when appropriate, such as:
+        feat:, fix:, refactor:, docs:, test:, chore:, ci:, perf:.
+        Keep titles ideally below 72 characters.
 
-  # Require useful PR descriptions, but don't block merging yet.
-  description:
-    mode: "warning"
+    # Require useful PR descriptions, but don't block merging yet.
+    description:
+      mode: "warning"
 
-  # Check whether linked GitHub issues are actually addressed.
-  issue_assessment:
-    mode: "warning"
+    # Check whether linked GitHub issues are actually addressed.
+    issue_assessment:
+      mode: "warning"
 
-  # Do not create custom blocking checks until the project has
-  # a mature test/CI baseline.
-  custom_checks: []
+    # Do not create custom blocking checks until the project has
+    # a mature test/CI baseline.
+    custom_checks: []
 
-# ============================================================
-# FINISHING TOUCHES
-# ============================================================
+  # ============================================================
+  # FINISHING TOUCHES
+  # ============================================================
 
-finishing_touches:
-  # Allow CodeRabbit to generate/improve docstrings when requested.
-  docstrings:
-    enabled: true
+  finishing_touches:
+    # Allow CodeRabbit to generate/improve docstrings when requested.
+    docstrings:
+      enabled: true
 
-  # Allow unit-test generation when explicitly requested.
-  unit_tests:
-    enabled: true
+    # Allow unit-test generation when explicitly requested.
+    unit_tests:
+      enabled: true
 
-  # Allow autofix suggestions/actions.
-  autofix:
-    enabled: true
+    # Allow autofix suggestions/actions.
+    autofix:
+      enabled: true
 
-  # Keep automatic simplification disabled.
-  # Simplification should be explicitly requested.
-  simplify:
-    enabled: false
+    # Keep automatic simplification disabled.
+    # Simplification should be explicitly requested.
+    simplify:
+      enabled: false
 
-  # Allow CI failure assistance.
-  fix_ci:
-    enabled: true
+    # Allow CI failure assistance.
+    fix_ci:
+      enabled: true
 
-  # Allow merge-conflict assistance.
-  resolve_merge_conflict:
-    enabled: true
+    # Allow merge-conflict assistance.
+    resolve_merge_conflict:
+      enabled: true
 
   # ============================================================
   # STATIC ANALYSIS & SECURITY TOOLS

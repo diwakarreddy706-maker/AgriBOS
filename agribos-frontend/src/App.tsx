@@ -8,6 +8,8 @@ import { DashboardPage } from './pages/DashboardPage';
 import { FarmerListPage } from './features/farmer/pages/FarmerListPage';
 import { EmployeeListPage } from './features/employee/pages/EmployeeListPage';
 import { MachineListPage } from './features/machine/pages/MachineListPage';
+import { TractorListPage } from './features/machine/pages/TractorListPage';
+import { HarvesterListPage } from './features/machine/pages/HarvesterListPage';
 import { RentedOwnerSettlementLedgerPage } from './features/machine-owner/pages/RentedOwnerSettlementLedgerPage';
 import { VehicleCompliancePage } from './features/machine/pages/VehicleCompliancePage';
 import { MastersManagementPage } from './features/masters/pages/MastersManagementPage';
@@ -78,6 +80,8 @@ export const App: React.FC = () => {
             <Route path="/employees" element={<EmployeeListPage />} />
             <Route path="/drivers" element={<EmployeeListPage />} />
             <Route path="/machines" element={<MachineListPage />} />
+            <Route path="/tractors" element={<TractorListPage />} />
+            <Route path="/harvesters" element={<HarvesterListPage />} />
             <Route path="/vehicle-compliance" element={<VehicleCompliancePage />} />
             <Route path="/machine-owners" element={<RentedOwnerSettlementLedgerPage />} />
             <Route path="/rented-owner-settlement" element={<RentedOwnerSettlementLedgerPage />} />

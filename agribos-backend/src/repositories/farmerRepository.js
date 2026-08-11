@@ -1,4 +1,4 @@
-import { get, query, run } from '../db/sqlite.js';
+import { get, query, run, runInTransaction } from '../db/sqlite.js';
 
 export const farmerRepository = {
   findAll: async ({ search, page = 0, size = 10 }) => {
@@ -99,6 +99,7 @@ export const farmerRepository = {
     return rows.map(r => ({
       ...r,
       fatherName: r.fatherName || '',
+      totalBalanceDue: r.totalBalance,
       udharBalance: r.totalBalance,
       workSessionsCount: r.totalWorkSessions
     }));

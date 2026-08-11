@@ -46,7 +46,7 @@ export const operationsApi = {
           registrationNumber: b.registrationNumber || 'N/A',
           cropType: b.cropType || 'Crop',
           rateType: 'HOURLY',
-          ratePerUnit: b.ratePerUnit || 2000,
+          ratePerUnit: b.ratePerUnit || 0,
           estimatedWorkUnits: b.estimatedHours || 0,
           totalEstimatedAmount: b.totalEstimatedAmount || 0,
           advanceAmountPaid: b.advanceAmountPaid || 0,

@@ -18,6 +18,7 @@ import inventoryController from './controllers/inventoryController.js';
 import maintenanceController from './controllers/maintenanceController.js';
 import billingController from './controllers/billingController.js';
 import payablesController from './controllers/payablesController.js';
+import analyticsController from './controllers/analyticsController.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 
 dotenv.config();
@@ -77,6 +78,9 @@ apiRouter.get('/machines/:id', authenticateToken, machineController.getMachineBy
 apiRouter.post('/machines', authenticateToken, machineController.createMachine);
 apiRouter.patch('/machines/:id/status', authenticateToken, machineController.updateStatus);
 apiRouter.delete('/machines/:id', authenticateToken, machineController.deleteMachine);
+apiRouter.post('/machines/:id/telematics', authenticateToken, machineController.postTelematics);
+apiRouter.get('/machines/:id/telematics', authenticateToken, machineController.getTelematics);
+apiRouter.post('/machines/:id/complete-service', authenticateToken, machineController.completeService);
 
 // Vehicle Compliance Routes (Protected)
 apiRouter.get('/vehicle-compliance', authenticateToken, vehicleComplianceController.getComplianceRecords);
@@ -87,10 +91,14 @@ apiRouter.post('/vehicle-compliance/record-renewal', authenticateToken, vehicleC
 apiRouter.get('/analytics/dashboard', authenticateToken, operationsController.getDashboardMetrics);
 apiRouter.get('/dashboard/operations', authenticateToken, operationsController.getDashboardMetrics);
 apiRouter.get('/operations/dashboard-metrics', authenticateToken, operationsController.getDashboardMetrics);
+apiRouter.get('/analytics/machine-profitability', authenticateToken, analyticsController.getMachineProfitability);
+apiRouter.get('/analytics/expense-breakdown', authenticateToken, analyticsController.getExpenseBreakdown);
 apiRouter.get('/bookings', authenticateToken, operationsController.getBookings);
 apiRouter.post('/bookings', authenticateToken, operationsController.createBooking);
 apiRouter.patch('/bookings/:id/status', authenticateToken, operationsController.updateBookingStatus);
 apiRouter.post('/bookings/assign-machine', authenticateToken, operationsController.assignMachine);
+apiRouter.post('/bookings/assign-operator', authenticateToken, operationsController.assignOperator);
+apiRouter.post('/bookings/:id/advance', authenticateToken, operationsController.recordAdvancePayment);
 apiRouter.post('/dispatches', authenticateToken, operationsController.createDispatch);
 apiRouter.post('/work-executions', authenticateToken, operationsController.logWorkExecution);
 
