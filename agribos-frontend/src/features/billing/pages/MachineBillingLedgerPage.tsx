@@ -5,12 +5,26 @@ import { MachineBillEntry } from '../types/billing';
 import { Button } from '../../../components/ui/Button';
 import { InvoicePdfModal } from '../components/InvoicePdfModal';
 
+const LOCAL_STORAGE_KEY = 'agribos_machine_billing_ledger';
+
+const loadSavedBills = (): MachineBillEntry[] => {
+  try {
+    const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch (e) {
+    console.error('Failed to load saved bills from localStorage:', e);
+  }
+  return [];
+};
+
 export const MachineBillingLedgerPage: React.FC = () => {
   const { language } = useLanguageStore();
 
-
   const [activeTab, setActiveTab] = useState<'create' | 'ledger' | 'directory'>('create');
-  const [bills, setBills] = useState<MachineBillEntry[]>([]);
+  const [bills, setBills] = useState<MachineBillEntry[]>(loadSavedBills);
   const [selectedMachineFilter, setSelectedMachineFilter] = useState<string>('ALL');
   const [searchKeyword, setSearchKeyword] = useState<string>('');
   const [selectedPrintBill, setSelectedPrintBill] = useState<MachineBillEntry | null>(null);
@@ -140,7 +154,13 @@ export const MachineBillingLedgerPage: React.FC = () => {
       createdAt: new Date().toISOString(),
     };
 
-    setBills([newBill, ...bills]);
+    const updatedBills = [newBill, ...bills];
+    setBills(updatedBills);
+    try {
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedBills));
+    } catch (err) {
+      console.error('Failed to persist machine bill to localStorage:', err);
+    }
     setSelectedPrintBill(newBill);
     alert(`Machine Bill #${newBill.billNumber} saved successfully to Machine Ledger Book!`);
 
