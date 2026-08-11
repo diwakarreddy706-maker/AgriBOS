@@ -285,7 +285,7 @@ export const MachineBillingLedgerPage: React.FC = () => {
             {/* Step 1: Select Machine */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center space-x-1">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center space-x-1">
                   <Tractor className="w-4 h-4 text-emerald-600" />
                   <span>1. Machine Code / Name (Select DB or Type Manual) *</span>
                 </label>
@@ -316,7 +316,7 @@ export const MachineBillingLedgerPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center space-x-1">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center space-x-1">
                   <Receipt className="w-4 h-4 text-emerald-600" />
                   <span>Manual Bill Number *</span>
                 </label>
@@ -331,7 +331,7 @@ export const MachineBillingLedgerPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center space-x-1">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center space-x-1">
                   <Calendar className="w-4 h-4 text-emerald-600" />
                   <span>Billing Date *</span>
                 </label>
@@ -347,7 +347,7 @@ export const MachineBillingLedgerPage: React.FC = () => {
             {/* Step 2: Farmer & Village Information */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center space-x-1">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center space-x-1">
                   <User className="w-4 h-4 text-emerald-600" />
                   <span>2. Farmer Name *</span>
                 </label>
@@ -362,7 +362,7 @@ export const MachineBillingLedgerPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center space-x-1">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center space-x-1">
                   <Phone className="w-4 h-4 text-emerald-600" />
                   <span>Farmer Phone / Mobile *</span>
                 </label>
@@ -376,7 +376,7 @@ export const MachineBillingLedgerPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center space-x-1">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center space-x-1">
                   <MapPin className="w-4 h-4 text-emerald-600" />
                   <span>Village Name *</span>
                 </label>
