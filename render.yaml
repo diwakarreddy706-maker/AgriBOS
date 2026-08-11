@@ -1,0 +1,44 @@
+services:
+  # 1. AgriBOS Backend Web Service
+  - type: web
+    name: agribos-backend
+    runtime: node
+    rootDir: agribos-backend
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DB_PATH
+        value: /var/data/agribos.db
+      - key: JWT_SECRET
+        generateValue: true
+      - key: FRONTEND_URL
+        fromService:
+          type: web
+          name: agribos-frontend
+          property: url
+    disk:
+      name: agribos-sqlite-disk
+      mountPath: /var/data
+      sizeGB: 1
+
+  # 2. AgriBOS Frontend Static Site
+  - type: web
+    name: agribos-frontend
+    runtime: static
+    rootDir: agribos-frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_BASE_URL
+        fromService:
+          type: web
+          name: agribos-backend
+          property: url
+          path: /api/v1

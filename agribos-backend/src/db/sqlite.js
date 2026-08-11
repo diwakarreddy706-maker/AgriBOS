@@ -3,12 +3,14 @@ import path from 'path';
 import fs from 'fs';
 import bcrypt from 'bcryptjs';
 
-const dbDir = path.resolve('data');
+const dbPath = process.env.DB_PATH
+  ? path.resolve(process.env.DB_PATH)
+  : path.join(path.resolve('data'), 'agribos.db');
+
+const dbDir = path.dirname(dbPath);
 if (!fs.existsSync(dbDir)) {
   fs.mkdirSync(dbDir, { recursive: true });
 }
-
-const dbPath = path.join(dbDir, 'agribos.db');
 
 export const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {

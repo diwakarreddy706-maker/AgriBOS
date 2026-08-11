@@ -26,7 +26,20 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-app.use(cors());
+const allowedOrigins = process.env.FRONTEND_URL
+  ? [process.env.FRONTEND_URL, 'http://localhost:3000', 'http://localhost:5173']
+  : '*';
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins === '*' || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(null, true);
+    }
+  },
+  credentials: true
+}));
 app.use(express.json());
 
 // API Routes
@@ -139,10 +152,10 @@ app.use(errorHandler);
 // Initialize SQLite database and start server
 initDb()
   .then(() => {
-    app.listen(PORT, () => {
-      console.log(`🚀 AgriBOS JavaScript Backend running on http://localhost:${PORT}`);
-      console.log(`📡 API endpoint available at http://localhost:${PORT}/api/v1`);
-      console.log(`📖 Swagger API Docs available at http://localhost:${PORT}/api/v1/docs`);
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`🚀 AgriBOS JavaScript Backend running on port ${PORT}`);
+      console.log(`📡 API endpoint available at /api/v1`);
+      console.log(`📖 Swagger API Docs available at /api/v1/docs`);
     });
   })
   .catch((err) => {
