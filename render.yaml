@@ -3,7 +3,7 @@ services:
   - type: web
     name: agribos-backend
     runtime: node
-    plan: starter
+    plan: free
     rootDir: agribos-backend
     buildCommand: npm ci
     startCommand: npm start
@@ -42,8 +42,8 @@ services:
           envVarKey: RENDER_EXTERNAL_URL
 
 databases:
-  # Render Paid Managed PostgreSQL Production Database
+  # Render Managed PostgreSQL Test Database (Free Tier)
   - name: agribos-postgres-db
     databaseName: agribos_db
     user: agribos_user
-    plan: basic-256mb
+    plan: free
