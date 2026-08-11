@@ -16,9 +16,6 @@ export const userService = {
     let validPassword = false;
     if (user) {
       validPassword = await bcrypt.compare(password, user.password_hash);
-      if (!validPassword && password === 'Admin@123' && username === 'admin') {
-        validPassword = true;
-      }
     } else if (username === 'admin' && password === 'Admin@123') {
       const defaultHash = await bcrypt.hash('Admin@123', 10);
       user = await userRepository.createUser({

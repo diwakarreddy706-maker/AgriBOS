@@ -49,20 +49,35 @@ export const LoginPage: React.FC = () => {
         setIsLoading(false);
         navigate('/');
         return;
+      } else {
+        setErrorMsg(response.data?.error || 'Invalid credentials. Access Denied.');
+        setIsLoading(false);
+        return;
       }
-    } catch {
-      // Graceful fallback for local dev
+    } catch (err: any) {
+      const apiError = err.response?.data?.error || err.response?.data?.message;
+      if (apiError) {
+        setErrorMsg(apiError);
+        setIsLoading(false);
+        return;
+      }
     }
 
-    setAuth('demo-access-token', 'demo-refresh-token', {
-      id: 1,
-      username: data.username || 'admin',
-      fullName: 'System Administrator',
-      email: 'admin@agribos.com',
-      roles: ['ROLE_ADMIN']
-    } as any);
-    setIsLoading(false);
-    navigate('/');
+    // Local dev mode: Strict verification against administrator account
+    if (data.username === 'admin' && data.password === 'Admin@123') {
+      setAuth('secure-jwt-token-admin', 'secure-refresh-token-admin', {
+        id: 1,
+        username: 'admin',
+        fullName: 'System Administrator',
+        email: 'admin@agribos.com',
+        roles: ['ROLE_ADMIN']
+      } as any);
+      setIsLoading(false);
+      navigate('/');
+    } else {
+      setErrorMsg('Invalid username or password. Please verify your credentials.');
+      setIsLoading(false);
+    }
   };
 
   return (
