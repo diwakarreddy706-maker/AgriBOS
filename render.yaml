@@ -12,9 +12,7 @@ services:
       - key: NODE_ENV
         value: production
       - key: DATABASE_URL
-        fromDatabase:
-          name: agribos-postgres-db
-          property: connectionString
+        sync: false
       - key: JWT_SECRET
         generateValue: true
       - key: FRONTEND_URL
@@ -40,10 +38,3 @@ services:
           type: web
           name: agribos-backend
           envVarKey: RENDER_EXTERNAL_URL
-
-databases:
-  # Render Managed PostgreSQL Test Database (Free Tier)
-  - name: agribos-postgres-db
-    databaseName: agribos_db
-    user: agribos_user
-    plan: free
