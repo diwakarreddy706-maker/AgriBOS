@@ -25,22 +25,11 @@ const SAVED_ACCESS = localStorage.getItem('agribos_access_token');
 const SAVED_REFRESH = localStorage.getItem('agribos_refresh_token');
 const SAVED_USER = localStorage.getItem('agribos_user');
 
-const DEFAULT_DEMO_USER: UserProfile = {
-  id: 1,
-  userCode: 'USR-ADMIN',
-  username: 'admin',
-  fullName: 'System Administrator',
-  email: 'admin@agribos.com',
-  mobileNumber: '9880123456',
-  status: 'ACTIVE',
-  roles: ['ROLE_ADMIN']
-};
-
 export const useAuthStore = create<AuthState>((set) => ({
-  accessToken: SAVED_ACCESS || 'demo-access-token',
-  refreshToken: SAVED_REFRESH || 'demo-refresh-token',
-  user: SAVED_USER ? JSON.parse(SAVED_USER) : DEFAULT_DEMO_USER,
-  isAuthenticated: true,
+  accessToken: SAVED_ACCESS || null,
+  refreshToken: SAVED_REFRESH || null,
+  user: SAVED_USER ? JSON.parse(SAVED_USER) : null,
+  isAuthenticated: Boolean(SAVED_ACCESS),
 
   setAuth: (accessToken, refreshToken, user) => {
     localStorage.setItem('agribos_access_token', accessToken);
