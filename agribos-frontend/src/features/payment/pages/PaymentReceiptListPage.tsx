@@ -4,24 +4,43 @@ import { paymentApi } from '../api/paymentApi';
 import { useLanguageStore } from '../../../store/useLanguageStore';
 import { en } from '../../../localization/en';
 import { kn } from '../../../localization/kn';
-import { Ticket, Plus } from 'lucide-react';
-import { RecordPaymentReceiptDialog } from '../components/RecordPaymentReceiptDialog';
+import { Ticket, Plus, FileText } from 'lucide-react';
 import { PaymentReceipt } from '../types/payment';
+import { CreateReceiptModal } from '../components/CreateReceiptModal';
+import { InvoicePreviewModal } from '../../billing/components/InvoicePreviewModal';
 
 export const PaymentReceiptListPage: React.FC = () => {
   const { language } = useLanguageStore();
   const t = language === 'kn' ? kn : en;
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
 
-  const { data: response, isLoading } = useQuery({
+  // PDF Preview State
+  const [previewDocId, setPreviewDocId] = useState<number | null>(null);
+  const [previewDocNumber, setPreviewDocNumber] = useState<string>('');
+  const [isPreviewOpen, setIsPreviewOpen] = useState<boolean>(false);
+
+  const { data: response, isLoading, refetch } = useQuery({
     queryKey: ['paymentReceipts'],
     queryFn: () => paymentApi.getReceipts(),
   });
 
   const receipts: PaymentReceipt[] = response?.data?.content || [
-    { id: 1, receiptNumber: 'RCT-2026-000001', farmerId: 10, farmerName: 'Basavaraj Patil', invoiceId: 1, paymentDate: '2026-07-27 10:30', amount: 5000, paymentMode: 'CASH', status: 'POSTED', createdAt: '2026-07-27' },
-    { id: 2, receiptNumber: 'RCT-2026-000002', farmerId: 12, farmerName: 'Ningappa Gowda', invoiceId: 2, paymentDate: '2026-07-27 14:15', amount: 22050, paymentMode: 'UPI', referenceNumber: 'UTR987654321', status: 'RECONCILED', createdAt: '2026-07-27' }
+    { id: 1, receiptNumber: 'REC-2026-000001', farmerId: 10, farmerName: 'Basavaraj Patil', invoiceId: 1, paymentDate: '2026-07-27 10:30', amount: 5000, paymentMode: 'CASH', status: 'POSTED', createdAt: '2026-07-27' },
+    { id: 2, receiptNumber: 'REC-2026-000002', farmerId: 12, farmerName: 'Ningappa Gowda', invoiceId: 2, paymentDate: '2026-07-27 14:15', amount: 22050, paymentMode: 'UPI', referenceNumber: 'UTR987654321', status: 'RECONCILED', createdAt: '2026-07-27' }
   ];
+
+  const handleOpenPreview = (id: number, number: string) => {
+    setPreviewDocId(id);
+    setPreviewDocNumber(number);
+    setIsPreviewOpen(true);
+  };
+
+  const handleReceiptCreated = (createdReceipt: any) => {
+    refetch();
+    if (createdReceipt?.id) {
+      handleOpenPreview(createdReceipt.id, createdReceipt.receiptNumber || 'Receipt');
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -33,7 +52,7 @@ export const PaymentReceiptListPage: React.FC = () => {
           </p>
         </div>
         <button
-          onClick={() => setIsDialogOpen(true)}
+          onClick={() => setIsReceiptModalOpen(true)}
           className="flex items-center space-x-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium shadow-sm transition-colors"
         >
           <Plus className="h-4 w-4" />
@@ -62,6 +81,7 @@ export const PaymentReceiptListPage: React.FC = () => {
                 <th className="p-4">{t.paymentMode}</th>
                 <th className="p-4">{t.referenceNo}</th>
                 <th className="p-4">{t.status}</th>
+                <th className="p-4 text-right">PDF Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-slate-700 text-sm text-gray-800 dark:text-gray-200">
@@ -74,8 +94,17 @@ export const PaymentReceiptListPage: React.FC = () => {
                   <td className="p-4 font-mono text-xs text-gray-500 dark:text-gray-400">{r.referenceNumber || 'N/A'}</td>
                   <td className="p-4">
                     <span className="px-2.5 py-1 text-xs font-bold rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
-                      {r.status}
+                      {r.status || 'POSTED'}
                     </span>
+                  </td>
+                  <td className="p-4 text-right">
+                    <button
+                      onClick={() => handleOpenPreview(r.id, r.receiptNumber)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-lg text-xs font-medium transition"
+                    >
+                      <FileText className="w-3.5 h-3.5" />
+                      <span>PDF Receipt</span>
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -84,7 +113,21 @@ export const PaymentReceiptListPage: React.FC = () => {
         )}
       </div>
 
-      <RecordPaymentReceiptDialog isOpen={isDialogOpen} onClose={() => setIsDialogOpen(false)} />
+      <CreateReceiptModal
+        isOpen={isReceiptModalOpen}
+        onClose={() => setIsReceiptModalOpen(false)}
+        onSuccess={handleReceiptCreated}
+      />
+
+      <InvoicePreviewModal
+        isOpen={isPreviewOpen}
+        onClose={() => setIsPreviewOpen(false)}
+        documentId={previewDocId}
+        documentType="receipt"
+        documentNumber={previewDocNumber}
+      />
     </div>
   );
 };
+
+export default PaymentReceiptListPage;

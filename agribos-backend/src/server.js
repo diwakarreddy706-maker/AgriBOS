@@ -17,6 +17,8 @@ import fuelController from './controllers/fuelController.js';
 import inventoryController from './controllers/inventoryController.js';
 import maintenanceController from './controllers/maintenanceController.js';
 import billingController from './controllers/billingController.js';
+import invoiceController from './controllers/invoiceController.js';
+import receiptController from './controllers/receiptController.js';
 import payablesController from './controllers/payablesController.js';
 import analyticsController from './controllers/analyticsController.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
@@ -158,6 +160,18 @@ apiRouter.post('/workshop/jobs', authenticateToken, maintenanceController.create
 apiRouter.get('/customer-invoices', authenticateToken, billingController.getInvoices);
 apiRouter.post('/customer-invoices', authenticateToken, billingController.createInvoice);
 apiRouter.get('/billing/finance-summary', authenticateToken, billingController.getFinanceSummary);
+
+// PDF Invoice Document Routes (Protected)
+apiRouter.post('/invoices', authenticateToken, invoiceController.createInvoice);
+apiRouter.get('/invoices', authenticateToken, invoiceController.listInvoices);
+apiRouter.get('/invoices/:id', authenticateToken, invoiceController.getInvoiceById);
+apiRouter.get('/invoices/:id/pdf', authenticateToken, invoiceController.downloadInvoicePdf);
+
+// PDF Udhar Receipt Document Routes (Protected)
+apiRouter.post('/receipts', authenticateToken, receiptController.createReceipt);
+apiRouter.get('/receipts', authenticateToken, receiptController.listReceipts);
+apiRouter.get('/receipts/:id', authenticateToken, receiptController.getReceiptById);
+apiRouter.get('/receipts/:id/pdf', authenticateToken, receiptController.downloadReceiptPdf);
 
 // Payroll / Payables Routes (Protected)
 apiRouter.get('/payroll', authenticateToken, payablesController.getPayrollEntries);

@@ -165,6 +165,8 @@ export const exec = async (sql, client = null) => {
   }
 };
 
+let sqliteTxPromise = Promise.resolve();
+
 // Transaction Execution Wrapper
 export const runInTransaction = async (callback) => {
   if (isPostgres) {
@@ -187,15 +189,25 @@ export const runInTransaction = async (callback) => {
       client.release();
     }
   } else {
-    await run('BEGIN TRANSACTION');
-    try {
-      const result = await callback();
-      await run('COMMIT');
-      return result;
-    } catch (error) {
-      await run('ROLLBACK');
-      throw error;
-    }
+    const currentTx = sqliteTxPromise.then(async () => {
+      await run('BEGIN TRANSACTION');
+      try {
+        const scopedTx = {
+          query: (sql, params = []) => query(sql, params),
+          get: (sql, params = []) => get(sql, params),
+          run: (sql, params = []) => run(sql, params),
+          exec: (sql) => exec(sql),
+        };
+        const result = await callback(scopedTx);
+        await run('COMMIT');
+        return result;
+      } catch (error) {
+        await run('ROLLBACK');
+        throw error;
+      }
+    });
+    sqliteTxPromise = currentTx.catch(() => {});
+    return currentTx;
   }
 };
 
@@ -558,6 +570,71 @@ export const initPgSchema = async (client = null) => {
     );
     CREATE INDEX IF NOT EXISTS idx_telematics_machine_id ON machine_telematics_history(machine_id);
     CREATE INDEX IF NOT EXISTS idx_telematics_recorded_at ON machine_telematics_history(recorded_at);
+
+    CREATE TABLE IF NOT EXISTS document_sequences (
+      sequence_key VARCHAR(100) PRIMARY KEY,
+      current_val INTEGER DEFAULT 0,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS invoices (
+      id SERIAL PRIMARY KEY,
+      invoice_number VARCHAR(50) UNIQUE NOT NULL,
+      invoice_type VARCHAR(50) NOT NULL,
+      farmer_id INTEGER NOT NULL REFERENCES farmers(id) ON DELETE CASCADE,
+      source_transaction_type VARCHAR(50),
+      source_transaction_id INTEGER,
+      invoice_date VARCHAR(50) NOT NULL,
+      subtotal DECIMAL(12,2) DEFAULT 0,
+      discount DECIMAL(12,2) DEFAULT 0,
+      tax_amount DECIMAL(12,2) DEFAULT 0,
+      grand_total DECIMAL(12,2) DEFAULT 0,
+      paid_amount DECIMAL(12,2) DEFAULT 0,
+      balance_due DECIMAL(12,2) DEFAULT 0,
+      status VARCHAR(50) DEFAULT 'UNPAID',
+      notes TEXT,
+      is_deleted SMALLINT DEFAULT 0,
+      created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_invoices_number ON invoices(invoice_number);
+    CREATE INDEX IF NOT EXISTS idx_invoices_farmer ON invoices(farmer_id);
+    CREATE INDEX IF NOT EXISTS idx_invoices_source ON invoices(source_transaction_type, source_transaction_id);
+
+    CREATE TABLE IF NOT EXISTS invoice_items (
+      id SERIAL PRIMARY KEY,
+      invoice_id INTEGER NOT NULL REFERENCES invoices(id) ON DELETE CASCADE,
+      item_type VARCHAR(50),
+      item_name VARCHAR(255) NOT NULL,
+      item_name_kn VARCHAR(255),
+      quantity DECIMAL(12,2) DEFAULT 1,
+      unit VARCHAR(50) DEFAULT 'PCS',
+      unit_price DECIMAL(12,2) DEFAULT 0,
+      total_price DECIMAL(12,2) DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_invoice_items_inv ON invoice_items(invoice_id);
+
+    CREATE TABLE IF NOT EXISTS receipts (
+      id SERIAL PRIMARY KEY,
+      receipt_number VARCHAR(50) UNIQUE NOT NULL,
+      farmer_id INTEGER NOT NULL REFERENCES farmers(id) ON DELETE CASCADE,
+      farmer_payment_id INTEGER REFERENCES farmer_payments(id) ON DELETE SET NULL,
+      invoice_id INTEGER REFERENCES invoices(id) ON DELETE SET NULL,
+      payment_date VARCHAR(50) NOT NULL,
+      previous_balance DECIMAL(12,2) DEFAULT 0,
+      payment_amount DECIMAL(12,2) NOT NULL,
+      remaining_balance DECIMAL(12,2) DEFAULT 0,
+      payment_mode VARCHAR(50) DEFAULT 'CASH',
+      transaction_ref VARCHAR(255),
+      notes TEXT,
+      is_deleted SMALLINT DEFAULT 0,
+      created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_receipts_number ON receipts(receipt_number);
+    CREATE INDEX IF NOT EXISTS idx_receipts_farmer ON receipts(farmer_id);
   `;
   await exec(schemaSql, client);
 };
@@ -934,6 +1011,78 @@ export const initSqliteSchema = async () => {
     );
     CREATE INDEX IF NOT EXISTS idx_telematics_machine_id ON machine_telematics_history(machine_id);
     CREATE INDEX IF NOT EXISTS idx_telematics_recorded_at ON machine_telematics_history(recorded_at);
+
+    CREATE TABLE IF NOT EXISTS document_sequences (
+      sequence_key TEXT PRIMARY KEY,
+      current_val INTEGER DEFAULT 0,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS invoices (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      invoice_number TEXT UNIQUE NOT NULL,
+      invoice_type TEXT NOT NULL,
+      farmer_id INTEGER NOT NULL,
+      source_transaction_type TEXT,
+      source_transaction_id INTEGER,
+      invoice_date TEXT NOT NULL,
+      subtotal REAL DEFAULT 0,
+      discount REAL DEFAULT 0,
+      tax_amount REAL DEFAULT 0,
+      grand_total REAL DEFAULT 0,
+      paid_amount REAL DEFAULT 0,
+      balance_due REAL DEFAULT 0,
+      status TEXT DEFAULT 'UNPAID',
+      notes TEXT,
+      is_deleted INTEGER DEFAULT 0,
+      created_by INTEGER,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (farmer_id) REFERENCES farmers(id) ON DELETE CASCADE,
+      FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_invoices_number ON invoices(invoice_number);
+    CREATE INDEX IF NOT EXISTS idx_invoices_farmer ON invoices(farmer_id);
+    CREATE INDEX IF NOT EXISTS idx_invoices_source ON invoices(source_transaction_type, source_transaction_id);
+
+    CREATE TABLE IF NOT EXISTS invoice_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      invoice_id INTEGER NOT NULL,
+      item_type TEXT,
+      item_name TEXT NOT NULL,
+      item_name_kn TEXT,
+      quantity REAL DEFAULT 1,
+      unit TEXT DEFAULT 'PCS',
+      unit_price REAL DEFAULT 0,
+      total_price REAL DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (invoice_id) REFERENCES invoices(id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_invoice_items_inv ON invoice_items(invoice_id);
+
+    CREATE TABLE IF NOT EXISTS receipts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      receipt_number TEXT UNIQUE NOT NULL,
+      farmer_id INTEGER NOT NULL,
+      farmer_payment_id INTEGER,
+      invoice_id INTEGER,
+      payment_date TEXT NOT NULL,
+      previous_balance REAL DEFAULT 0,
+      payment_amount REAL NOT NULL,
+      remaining_balance REAL DEFAULT 0,
+      payment_mode TEXT DEFAULT 'CASH',
+      transaction_ref TEXT,
+      notes TEXT,
+      is_deleted INTEGER DEFAULT 0,
+      created_by INTEGER,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (farmer_id) REFERENCES farmers(id) ON DELETE CASCADE,
+      FOREIGN KEY (farmer_payment_id) REFERENCES farmer_payments(id) ON DELETE SET NULL,
+      FOREIGN KEY (invoice_id) REFERENCES invoices(id) ON DELETE SET NULL,
+      FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_receipts_number ON receipts(receipt_number);
+    CREATE INDEX IF NOT EXISTS idx_receipts_farmer ON receipts(farmer_id);
   `;
   await exec(schema);
 };

@@ -4,6 +4,9 @@ import { Receipt, PlusCircle, BookOpen, Clock, Tractor, Calendar, User, MapPin, 
 import { MachineBillEntry } from '../types/billing';
 import { Button } from '../../../components/ui/Button';
 import { InvoicePdfModal } from '../components/InvoicePdfModal';
+import { InvoicePreviewModal } from '../components/InvoicePreviewModal';
+import { CreateInvoiceModal } from '../components/CreateInvoiceModal';
+import { CreateReceiptModal } from '../../payment/components/CreateReceiptModal';
 
 const LOCAL_STORAGE_KEY = 'agribos_machine_billing_ledger';
 
@@ -28,6 +31,21 @@ export const MachineBillingLedgerPage: React.FC = () => {
   const [selectedMachineFilter, setSelectedMachineFilter] = useState<string>('ALL');
   const [searchKeyword, setSearchKeyword] = useState<string>('');
   const [selectedPrintBill, setSelectedPrintBill] = useState<MachineBillEntry | null>(null);
+
+  // New PDF Document Modals State
+  const [isCreateInvoiceOpen, setIsCreateInvoiceOpen] = useState(false);
+  const [isCreateReceiptOpen, setIsCreateReceiptOpen] = useState(false);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [previewDocId, setPreviewDocId] = useState<number | null>(null);
+  const [previewDocType, setPreviewDocType] = useState<'invoice' | 'receipt'>('invoice');
+  const [previewDocNumber, setPreviewDocNumber] = useState<string>('');
+
+  const handleOpenPdfPreview = (id: number, docType: 'invoice' | 'receipt', docNum: string) => {
+    setPreviewDocId(id);
+    setPreviewDocType(docType);
+    setPreviewDocNumber(docNum);
+    setIsPreviewOpen(true);
+  };
 
 
   // Form State for New Machine Bill
@@ -234,16 +252,35 @@ export const MachineBillingLedgerPage: React.FC = () => {
         </div>
 
         {/* Action Tabs */}
-        <div className="flex items-center bg-black/20 p-1.5 rounded-xl space-x-1 backdrop-blur">
+        <div className="flex flex-wrap items-center bg-black/20 p-1.5 rounded-xl gap-1.5 backdrop-blur">
           <button
             onClick={() => setActiveTab('create')}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+            className={`flex items-center space-x-2 px-3 py-2 rounded-lg text-xs font-bold transition-all ${
               activeTab === 'create' ? 'bg-emerald-500 text-white shadow' : 'text-emerald-100 hover:bg-white/10'
             }`}
           >
             <PlusCircle className="w-4 h-4" />
             <span>{language === 'kn' ? 'ಹೊಸ ಬಿಲ್ ಸೃಷ್ಟಿ' : 'Create Machine Bill'}</span>
           </button>
+
+          <button
+            type="button"
+            onClick={() => setIsCreateInvoiceOpen(true)}
+            className="flex items-center space-x-1.5 px-3 py-2 rounded-lg text-xs font-bold bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-500/30 transition-all"
+          >
+            <FileText className="w-4 h-4 text-amber-400" />
+            <span>+ PDF Invoice</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setIsCreateReceiptOpen(true)}
+            className="flex items-center space-x-1.5 px-3 py-2 rounded-lg text-xs font-bold bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-200 border border-emerald-500/30 transition-all"
+          >
+            <Receipt className="w-4 h-4 text-emerald-400" />
+            <span>+ Udhar Receipt</span>
+          </button>
+
           <button
             onClick={() => setActiveTab('ledger')}
             className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
@@ -755,6 +792,35 @@ export const MachineBillingLedgerPage: React.FC = () => {
           onClose={() => setSelectedPrintBill(null)}
         />
       )}
+
+      {/* NEW BILINGUAL PDF SYSTEM MODALS */}
+      <CreateInvoiceModal
+        isOpen={isCreateInvoiceOpen}
+        onClose={() => setIsCreateInvoiceOpen(false)}
+        onSuccess={(createdInv) => {
+          if (createdInv?.id) {
+            handleOpenPdfPreview(createdInv.id, 'invoice', createdInv.invoiceNumber || 'INV');
+          }
+        }}
+      />
+
+      <CreateReceiptModal
+        isOpen={isCreateReceiptOpen}
+        onClose={() => setIsCreateReceiptOpen(false)}
+        onSuccess={(createdRec) => {
+          if (createdRec?.id) {
+            handleOpenPdfPreview(createdRec.id, 'receipt', createdRec.receiptNumber || 'REC');
+          }
+        }}
+      />
+
+      <InvoicePreviewModal
+        isOpen={isPreviewOpen}
+        onClose={() => setIsPreviewOpen(false)}
+        documentId={previewDocId}
+        documentType={previewDocType}
+        documentNumber={previewDocNumber}
+      />
     </div>
   );
 };
