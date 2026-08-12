@@ -215,6 +215,8 @@ export const MachineBillingLedgerPage: React.FC = () => {
     e.preventDefault();
     logWorkMutation.mutate({
       farmerId: formData.farmerId || undefined,
+      farmerName: formData.farmerName || undefined,
+      mobileNumber: formData.mobileNumber || undefined,
       machineId: formData.machineId || undefined,
       billNumber: formData.billNumber || undefined,
       workDate: formData.billDate,
@@ -353,9 +355,9 @@ export const MachineBillingLedgerPage: React.FC = () => {
                 }}
                 className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 dark:text-slate-100"
               >
-                {farmersList.length === 0 && (
-                  <option value={0}>Loading farmers from DB...</option>
-                )}
+                <option value={0}>
+                  {farmersList.length === 0 ? 'Loading farmers from DB...' : `+ New Farmer / Manual Entry (${formData.farmerName || 'Custom'})`}
+                </option>
                 {farmersList.map((f: any) => (
                   <option key={f.id} value={f.id}>
                     {f.fullName || 'Farmer'} ({f.villageName || 'Raichur'}) - {f.mobileNumber || ''}

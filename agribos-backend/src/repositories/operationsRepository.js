@@ -235,14 +235,38 @@ export const operationsRepository = {
   logWorkExecution: async (data) => {
     return runInTransaction(async (txClient) => {
       // Validate inputs
-      const farmerId = parseInt(data.farmerId, 10);
-      if (!farmerId || isNaN(farmerId)) {
-        throw new Error('Valid farmer ID is required');
+      let farmerId = data.farmerId ? parseInt(data.farmerId, 10) : null;
+      let farmer = null;
+
+      if (farmerId && farmerId > 0) {
+        farmer = await get('SELECT * FROM farmers WHERE id = ? AND is_deleted = 0', [farmerId]);
+        if (!farmer && (!data.farmerName || data.farmerName.trim() === '')) {
+          throw new Error(`Farmer with ID ${farmerId} does not exist`);
+        }
       }
 
-      const farmer = await get('SELECT * FROM farmers WHERE id = ? AND is_deleted = 0', [farmerId]);
+      // If farmer not found by ID or no ID supplied, attempt lookup or auto-creation by farmerName
+      if (!farmer && data.farmerName && data.farmerName.trim() !== '') {
+        const cleanName = data.farmerName.trim();
+        farmer = await get('SELECT * FROM farmers WHERE LOWER(full_name) = LOWER(?) AND is_deleted = 0', [cleanName]);
+
+        if (!farmer) {
+          // Auto-create new farmer record in DB
+          const farmerCode = `FAR-2026-${Math.floor(100 + Math.random() * 900)}`;
+          const mobile = data.mobileNumber || '9880123456';
+          const village = data.villageName || 'Sindhanur';
+          const created = await run(
+            `INSERT INTO farmers (farmer_code, full_name, mobile_number, village_name, taluk_name, district_name, status)
+             VALUES (?, ?, ?, ?, ?, ?, 'ACTIVE')`,
+            [farmerCode, cleanName, mobile, village, village, 'Raichur']
+          );
+          farmer = await get('SELECT * FROM farmers WHERE id = ?', [created.id]);
+        }
+        farmerId = farmer.id;
+      }
+
       if (!farmer) {
-        throw new Error(`Farmer with ID ${farmerId} does not exist`);
+        throw new Error('Valid farmer ID or Farmer Name is required');
       }
 
       let machine = null;

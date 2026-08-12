@@ -101,6 +101,8 @@ export interface DispatchCreatePayload {
 export interface WorkExecutionCreatePayload {
   bookingId?: number;
   farmerId?: number;
+  farmerName?: string;
+  mobileNumber?: string;
   dispatchId?: number;
   machineId?: number;
   operatorId?: number;
