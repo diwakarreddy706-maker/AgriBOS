@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useLanguageStore } from '../../../store/useLanguageStore';
-import { Receipt, PlusCircle, BookOpen, Clock, Tractor, FileText } from 'lucide-react';
+import { Receipt, PlusCircle, BookOpen, Clock, Tractor, FileText, User, Phone, MapPin } from 'lucide-react';
 import { MachineBillEntry } from '../types/billing';
 import { Button } from '../../../components/ui/Button';
 import { InvoicePdfModal } from '../components/InvoicePdfModal';
@@ -58,8 +58,8 @@ export const MachineBillingLedgerPage: React.FC = () => {
 
   // Form State for New Machine Bill
   const [formData, setFormData] = useState({
-    farmerId: 1,
-    machineId: 1,
+    farmerId: 0,
+    machineId: 0,
     machineCode: 'MAC-4678',
     machineName: 'Kubota DC-68G Harvester',
     billNumber: '',
@@ -78,6 +78,41 @@ export const MachineBillingLedgerPage: React.FC = () => {
     paidAmount: 0,
     notes: '',
   });
+
+  // Automatically select valid farmer & machine when loaded
+  useEffect(() => {
+    if (farmersList.length > 0) {
+      const match = farmersList.find((f: any) => f.id === formData.farmerId);
+      if (!match) {
+        const f = farmersList[0];
+        setFormData((prev) => ({
+          ...prev,
+          farmerId: f.id,
+          farmerName: f.fullName || 'Farmer',
+          mobileNumber: f.mobileNumber || '',
+          villageName: f.villageName || ''
+        }));
+      }
+    }
+  }, [farmersList, formData.farmerId]);
+
+  useEffect(() => {
+    if (machinesList.length > 0) {
+      const match = machinesList.find((m: any) => m.id === formData.machineId);
+      if (!match) {
+        const m = machinesList[0];
+        const rate = parseFloat(m.hourlyRateDefault as any || 2400);
+        setFormData((prev) => ({
+          ...prev,
+          machineId: m.id,
+          machineCode: m.machineCode || 'MAC-4678',
+          machineName: m.makeModel || m.machineCode || 'Machine',
+          ratePerUnit: rate,
+          totalAmount: prev.netWorkingHours * rate
+        }));
+      }
+    }
+  }, [machinesList, formData.machineId]);
 
   // Helper to parse time strings like "09:00 AM", "05:30 PM", "09:00", "17:30"
   const parseTimeToHours = (timeStr: string): number | null => {
@@ -145,22 +180,25 @@ export const MachineBillingLedgerPage: React.FC = () => {
       setSelectedPrintBill(newEntry);
       alert(`Machine Bill #${newEntry?.billNumber || 'Entry'} saved successfully to Database!`);
 
+      const defaultFarmer = farmersList[0];
+      const defaultMachine = machinesList[0];
+
       setFormData({
-        farmerId: 1,
-        machineId: 1,
-        machineCode: 'MAC-4678',
-        machineName: 'Kubota DC-68G Harvester',
+        farmerId: defaultFarmer?.id || 0,
+        machineId: defaultMachine?.id || 0,
+        machineCode: defaultMachine?.machineCode || 'MAC-4678',
+        machineName: defaultMachine?.makeModel || 'Kubota Harvester',
         billNumber: '',
         billDate: new Date().toISOString().split('T')[0],
-        farmerName: '',
-        mobileNumber: '9880123456',
-        villageName: '',
+        farmerName: defaultFarmer?.fullName || '',
+        mobileNumber: defaultFarmer?.mobileNumber || '9880123456',
+        villageName: defaultFarmer?.villageName || '',
         startTime: '09:00 AM',
         endTime: '05:30 PM',
         breakHours: 1.5,
         netWorkingHours: 7.0,
         rateType: 'HOURLY',
-        ratePerUnit: 2400,
+        ratePerUnit: defaultMachine?.hourlyRateDefault || 2400,
         totalAmount: 16800,
         advanceAmount: 0,
         paidAmount: 0,
@@ -176,8 +214,8 @@ export const MachineBillingLedgerPage: React.FC = () => {
   const handleCreateBill = (e: React.FormEvent) => {
     e.preventDefault();
     logWorkMutation.mutate({
-      farmerId: formData.farmerId,
-      machineId: formData.machineId,
+      farmerId: formData.farmerId || undefined,
+      machineId: formData.machineId || undefined,
       billNumber: formData.billNumber || undefined,
       workDate: formData.billDate,
       startTime: formData.startTime,
@@ -308,16 +346,19 @@ export const MachineBillingLedgerPage: React.FC = () => {
                   setFormData((prev) => ({
                     ...prev,
                     farmerId: fid,
-                    farmerName: f?.fullName || '',
-                    mobileNumber: f?.mobileNumber || '',
-                    villageName: f?.villageName || ''
+                    farmerName: f?.fullName || prev.farmerName,
+                    mobileNumber: f?.mobileNumber || prev.mobileNumber,
+                    villageName: f?.villageName || prev.villageName
                   }));
                 }}
                 className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 dark:text-slate-100"
               >
+                {farmersList.length === 0 && (
+                  <option value={0}>Loading farmers from DB...</option>
+                )}
                 {farmersList.map((f: any) => (
                   <option key={f.id} value={f.id}>
-                    {f.fullName} ({f.villageName || 'Raichur'}) - {f.mobileNumber}
+                    {f.fullName || 'Farmer'} ({f.villageName || 'Raichur'}) - {f.mobileNumber || ''}
                   </option>
                 ))}
               </select>
@@ -333,19 +374,24 @@ export const MachineBillingLedgerPage: React.FC = () => {
                 onChange={(e) => {
                   const mid = parseInt(e.target.value, 10);
                   const m = machinesList.find((item: any) => item.id === mid);
+                  const rate = parseFloat(m?.hourlyRateDefault as any || 2400);
                   setFormData((prev) => ({
                     ...prev,
                     machineId: mid,
-                    machineCode: m?.machineCode || 'MAC-4678',
-                    machineName: m?.makeModel || m?.machineCode || 'Machine',
-                    ratePerUnit: m?.hourlyRateDefault || prev.ratePerUnit
+                    machineCode: m?.machineCode || prev.machineCode,
+                    machineName: m?.makeModel || m?.machineCode || prev.machineName,
+                    ratePerUnit: rate,
+                    totalAmount: prev.netWorkingHours * rate
                   }));
                 }}
-                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 dark:text-slate-100"
+                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 dark:text-slate-100 font-medium"
               >
+                {machinesList.length === 0 && (
+                  <option value={0}>Loading machines from DB...</option>
+                )}
                 {machinesList.map((m: any) => (
                   <option key={m.id} value={m.id}>
-                    {m.makeModel || m.machineCode} ({m.machineCode}) • ₹{m.hourlyRateDefault || 2400}/hr
+                    {m.makeModel || m.machineCode} ({m.machineCode}) • ₹{parseFloat(m.hourlyRateDefault as any || 2400).toFixed(2)}/hr
                   </option>
                 ))}
               </select>
@@ -361,6 +407,65 @@ export const MachineBillingLedgerPage: React.FC = () => {
                 value={formData.billDate}
                 onChange={(e) => setFormData({ ...formData, billDate: e.target.value })}
                 className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-semibold text-slate-900 dark:text-slate-100"
+              />
+            </div>
+          </div>
+
+          {/* Farmer & Bill Details Inputs */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 bg-slate-50/50 dark:bg-slate-800/40 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1 flex items-center gap-1">
+                <User className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Farmer Name</span>
+              </label>
+              <input
+                type="text"
+                value={formData.farmerName}
+                onChange={(e) => setFormData({ ...formData, farmerName: e.target.value })}
+                className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs font-semibold"
+                placeholder="Farmer Full Name"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1 flex items-center gap-1">
+                <Phone className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Mobile Number</span>
+              </label>
+              <input
+                type="text"
+                value={formData.mobileNumber}
+                onChange={(e) => setFormData({ ...formData, mobileNumber: e.target.value })}
+                className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs font-semibold"
+                placeholder="9880123456"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1 flex items-center gap-1">
+                <MapPin className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Village Name</span>
+              </label>
+              <input
+                type="text"
+                value={formData.villageName}
+                onChange={(e) => setFormData({ ...formData, villageName: e.target.value })}
+                className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs font-semibold"
+                placeholder="Village / Location"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1 flex items-center gap-1">
+                <Receipt className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Manual Bill No (Optional)</span>
+              </label>
+              <input
+                type="text"
+                value={formData.billNumber}
+                onChange={(e) => setFormData({ ...formData, billNumber: e.target.value })}
+                className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-xs font-mono font-semibold"
+                placeholder="Auto-generated if blank"
               />
             </div>
           </div>
