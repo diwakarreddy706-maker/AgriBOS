@@ -4,7 +4,7 @@ import crypto from 'crypto';
 import userRepository from '../repositories/userRepository.js';
 import refreshTokenRepository from '../repositories/refreshTokenRepository.js';
 import { logSecurityEvent } from '../utils/sanitizedLogger.js';
-import { getPgPool, runInTransaction } from '../db/database.js';
+import { getPgPool, runInTransaction, checkIsPostgres } from '../db/database.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'agribos-super-secret-jwt-key-2026';
 const REFRESH_SECRET = process.env.REFRESH_SECRET || 'agribos-super-secret-refresh-key-2026';
@@ -93,7 +93,7 @@ export const userService = {
     }
 
     const rawTokenHash = hashToken(refreshToken);
-    const isPg = process.env.DATABASE_URL ? true : false;
+    const isPg = checkIsPostgres();
 
     let result;
 

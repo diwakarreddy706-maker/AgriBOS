@@ -6,15 +6,28 @@ import bcrypt from 'bcryptjs';
 
 const { Pool } = pg;
 
-// Detect PostgreSQL connection environment
+// Detect environment and database URL configuration
+const nodeEnv = process.env.NODE_ENV || 'development';
+const isProduction = nodeEnv === 'production';
 const databaseUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL;
-const isPostgres = Boolean(databaseUrl);
+
+// Fail-closed security rule for production:
+// Production MUST operate on PostgreSQL/Neon ONLY. SQLite fallback is strictly forbidden.
+if (isProduction && !databaseUrl) {
+  const errorMsg = '❌ CRITICAL CONFIGURATION ERROR: NODE_ENV=production requires a valid DATABASE_URL (Neon PostgreSQL). SQLite fallback is strictly forbidden in production.';
+  console.error(errorMsg);
+  throw new Error('Production database configuration error: DATABASE_URL is required when NODE_ENV=production');
+}
+
+const isPostgres = Boolean(databaseUrl || process.env.DB_ENGINE === 'postgres');
 
 let pgPool = null;
 let sqliteDb = null;
 
 if (isPostgres) {
-  const isProduction = process.env.NODE_ENV === 'production';
+  if (!databaseUrl) {
+    throw new Error('PostgreSQL engine selected but DATABASE_URL is missing.');
+  }
   pgPool = new Pool({
     connectionString: databaseUrl,
     ssl: databaseUrl.includes('localhost') || databaseUrl.includes('127.0.0.1')
@@ -24,7 +37,8 @@ if (isPostgres) {
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 5000,
   });
-  console.log('⚡ Initialized PostgreSQL Connection Pool');
+  console.log('⚡ Database Engine: PostgreSQL');
+  console.log(`⚡ Environment: ${nodeEnv}`);
 } else {
   const dbPath = process.env.DB_PATH
     ? path.resolve(process.env.DB_PATH)
@@ -39,10 +53,12 @@ if (isPostgres) {
     if (err) {
       console.error('❌ Could not connect to SQLite database:', err);
     } else {
-      console.log('⚡ Connected to SQLite database at:', dbPath);
+      console.log('⚡ Database Engine: SQLite');
+      console.log(`⚡ Environment: ${nodeEnv}`);
     }
   });
 }
+
 
 /**
  * Converts SQLite positional '?' placeholders to PostgreSQL '$1, $2, $3...' placeholders
@@ -1123,7 +1139,21 @@ async function ensureWorkEntriesColumns() {
 // Primary Initialization Routine
 export const initDb = async () => {
   if (isPostgres) {
+    if (!pgPool) {
+      throw new Error('PostgreSQL connection pool is not initialized.');
+    }
+    try {
+      const client = await pgPool.connect();
+      client.release();
+    } catch (connErr) {
+      console.error('❌ PostgreSQL connection failed:', connErr.message);
+      if (isProduction) {
+        throw new Error(`Production PostgreSQL connection failed: ${connErr.message}`);
+      }
+      throw connErr;
+    }
     console.log('⚡ Active Database Engine: PostgreSQL');
+    console.log(`⚡ Environment: ${nodeEnv}`);
     await initPgSchema();
     await ensureWorkEntriesColumns();
     const adminUser = await get('SELECT * FROM users WHERE username = $1', ['admin']);
@@ -1137,6 +1167,7 @@ export const initDb = async () => {
     console.log('✅ PostgreSQL Database initialized successfully with complete ERP schema.');
   } else {
     console.log('⚡ Active Database Engine: SQLite');
+    console.log(`⚡ Environment: ${nodeEnv}`);
     await initSqliteSchema();
     await ensureWorkEntriesColumns();
     const adminUser = await get('SELECT * FROM users WHERE username = ?', ['admin']);
@@ -1150,6 +1181,7 @@ export const initDb = async () => {
     console.log('✅ SQLite Database initialized successfully with complete ERP schema.');
   }
 };
+
 
 export const getPgPool = () => pgPool;
 export const getSqliteDb = () => sqliteDb;

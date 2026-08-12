@@ -3,7 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './docs/swagger.js';
-import { initDb } from './db/sqlite.js';
+import { initDb, checkIsPostgres } from './db/database.js';
 import { authenticateToken } from './middleware/auth.js';
 import authController from './controllers/authController.js';
 import farmerController from './controllers/farmerController.js';
@@ -69,7 +69,13 @@ const apiRouter = express.Router();
 // Swagger Documentation & Health Check (Public)
 apiRouter.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 apiRouter.get('/health', (req, res) => {
-  res.json({ status: 'UP', service: 'AgriBOS JavaScript Backend', timestamp: new Date().toISOString() });
+  res.json({
+    status: 'UP',
+    service: 'AgriBOS JavaScript Backend',
+    database: checkIsPostgres() ? 'postgresql' : 'sqlite',
+    environment: process.env.NODE_ENV || 'development',
+    timestamp: new Date().toISOString()
+  });
 });
 
 // Authentication Routes (Public with Rate Limiting)
@@ -184,7 +190,7 @@ app.use('/api/v1', apiRouter);
 app.use(notFoundHandler);
 app.use(errorHandler);
 
-// Initialize SQLite database and start server
+// Initialize database engine and start server
 initDb()
   .then(() => {
     app.listen(PORT, '0.0.0.0', () => {
@@ -194,6 +200,6 @@ initDb()
     });
   })
   .catch((err) => {
-    console.error('❌ Failed to initialize SQLite database:', err);
+    console.error('❌ Failed to initialize database:', err.message || err);
     process.exit(1);
   });

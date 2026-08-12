@@ -1,11 +1,11 @@
-import { query, run, get } from '../db/database.js';
+import { query, run, get, checkIsPostgres } from '../db/database.js';
 
 export const refreshTokenRepository = {
   /**
    * Create a new refresh token session in DB.
    */
   createSession: async ({ userId, tokenHash, expiresAt, ipAddress, userAgent }, txClient = null) => {
-    const isPg = process.env.DATABASE_URL ? true : false;
+    const isPg = checkIsPostgres();
     const sql = isPg
       ? `INSERT INTO user_refresh_tokens (user_id, token_hash, expires_at, ip_address, user_agent)
          VALUES ($1, $2, $3, $4, $5) RETURNING *`
@@ -30,7 +30,7 @@ export const refreshTokenRepository = {
    * Find session by SHA-256 token_hash. Uses FOR UPDATE row lock if in PostgreSQL transaction.
    */
   findByHash: async (tokenHash, txClient = null) => {
-    const isPg = process.env.DATABASE_URL ? true : false;
+    const isPg = checkIsPostgres();
     const sql = isPg
       ? `SELECT * FROM user_refresh_tokens WHERE token_hash = $1 ${txClient ? 'FOR UPDATE' : ''}`
       : `SELECT * FROM user_refresh_tokens WHERE token_hash = ?`;
@@ -50,7 +50,7 @@ export const refreshTokenRepository = {
    * Revoke single session and record replacement token hash.
    */
   revokeToken: async (tokenId, replacedByHash = null, txClient = null) => {
-    const isPg = process.env.DATABASE_URL ? true : false;
+    const isPg = checkIsPostgres();
     const sql = isPg
       ? `UPDATE user_refresh_tokens 
          SET revoked_at = CURRENT_TIMESTAMP, replaced_by_hash = $2 
@@ -76,7 +76,7 @@ export const refreshTokenRepository = {
    * Revoke ALL active sessions for a user (Triggered on token reuse detection).
    */
   revokeAllUserSessions: async (userId, txClient = null) => {
-    const isPg = process.env.DATABASE_URL ? true : false;
+    const isPg = checkIsPostgres();
     const sql = isPg
       ? `UPDATE user_refresh_tokens 
          SET revoked_at = CURRENT_TIMESTAMP 
