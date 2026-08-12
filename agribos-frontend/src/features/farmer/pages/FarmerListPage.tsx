@@ -11,7 +11,6 @@ import {
   Receipt, 
   Printer, 
   X,
-  PackageCheck,
   TrendingUp,
   AlertCircle,
   CheckCircle2,
@@ -26,7 +25,7 @@ import { MachineBillEntry } from '../../billing/types/billing';
 export const FarmerListPage: React.FC = () => {
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedFarmerId, setSelectedFarmerId] = useState<number | null>(1);
+  const [selectedFarmerId, setSelectedFarmerId] = useState<number | null>(null);
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [selectedWorkEntry, setSelectedWorkEntry] = useState<FarmerWorkEntry | null>(null);
@@ -59,54 +58,70 @@ export const FarmerListPage: React.FC = () => {
 
     // Add base ledgers first
     baseLedgers.forEach((l) => {
-      map.set(l.fullName.trim().toLowerCase(), { ...l, workEntries: [...(l.workEntries || [])] });
+      if (!l) return;
+      const name = (l.fullName || l.farmerCode || 'Farmer').toString().trim();
+      map.set(name.toLowerCase(), {
+        ...l,
+        fullName: name,
+        villageName: l.villageName || 'Sindhanur',
+        mobileNumber: l.mobileNumber || '9880123456',
+        farmerCode: l.farmerCode || 'FAR-100',
+        totalWorkSessions: l.totalWorkSessions || 0,
+        totalBilledAmount: l.totalBilledAmount || 0,
+        totalAdvancePaid: l.totalAdvancePaid || 0,
+        totalPaidAmount: l.totalPaidAmount || 0,
+        totalBalanceDue: l.totalBalanceDue || 0,
+        workEntries: [...(l.workEntries || [])]
+      });
     });
 
     // Merge machine bills created in Machine Execution Billing
-    localMachineBills.forEach((b, idx) => {
-      const key = b.farmerName.trim().toLowerCase();
+    (localMachineBills || []).forEach((b, idx) => {
+      if (!b) return;
+      const farmerNameStr = (b.farmerName || 'Farmer').toString().trim();
+      const key = farmerNameStr.toLowerCase();
       const existing = map.get(key);
 
       const workEntry: FarmerWorkEntry = {
         id: b.id || 9000 + idx,
-        billNumber: b.billNumber,
-        workDate: b.billDate || b.workDate || '',
-        machineName: b.machineName,
+        billNumber: b.billNumber || `BILL-${idx}`,
+        workDate: b.billDate || b.workDate || new Date().toISOString().split('T')[0],
+        machineName: b.machineName || 'AgriBOS Machine',
         operatorName: 'Driver / Operator',
-        villageName: b.villageName,
+        villageName: b.villageName || 'Sindhanur',
         cropType: 'Paddy Harvest / Tillage Work',
-        workHours: b.netWorkingHours,
-        ratePerUnit: b.ratePerUnit,
-        totalAmount: b.totalAmount,
-        advanceAmount: b.advanceAmount,
-        paidAmount: b.paidAmount,
-        balanceDue: b.balanceDue,
+        workHours: b.netWorkingHours || 0,
+        ratePerUnit: b.ratePerUnit || 0,
+        totalAmount: b.totalAmount || 0,
+        advanceAmount: b.advanceAmount || 0,
+        paidAmount: b.paidAmount || 0,
+        balanceDue: b.balanceDue || 0,
         status: b.status === 'PAID' ? 'PAID' : b.status === 'PARTIAL' ? 'PARTIAL' : 'UNPAID',
       };
 
       if (existing) {
-        existing.totalWorkSessions += 1;
-        existing.totalBilledAmount += b.totalAmount;
-        existing.totalAdvancePaid += b.advanceAmount;
-        existing.totalPaidAmount += b.paidAmount;
-        existing.totalBalanceDue += b.balanceDue;
+        existing.totalWorkSessions = (existing.totalWorkSessions || 0) + 1;
+        existing.totalBilledAmount = (existing.totalBilledAmount || 0) + (b.totalAmount || 0);
+        existing.totalAdvancePaid = (existing.totalAdvancePaid || 0) + (b.advanceAmount || 0);
+        existing.totalPaidAmount = (existing.totalPaidAmount || 0) + (b.paidAmount || 0);
+        existing.totalBalanceDue = (existing.totalBalanceDue || 0) + (b.balanceDue || 0);
         if (!existing.workEntries.some((w) => w.billNumber === b.billNumber)) {
           existing.workEntries.unshift(workEntry);
         }
       } else {
         map.set(key, {
           id: 5000 + idx,
-          farmerCode: `FARM-${b.farmerName.replace(/\s+/g, '-').toUpperCase()}`,
-          fullName: b.farmerName,
+          farmerCode: `FARM-${farmerNameStr.replace(/\s+/g, '-').toUpperCase()}`,
+          fullName: farmerNameStr,
           fatherName: 'Sri',
           mobileNumber: b.mobileNumber || '9880123456',
-          villageName: b.villageName,
+          villageName: b.villageName || 'Sindhanur',
           talukName: 'Gangavati',
           totalWorkSessions: 1,
-          totalBilledAmount: b.totalAmount,
-          totalAdvancePaid: b.advanceAmount,
-          totalPaidAmount: b.paidAmount,
-          totalBalanceDue: b.balanceDue,
+          totalBilledAmount: b.totalAmount || 0,
+          totalAdvancePaid: b.advanceAmount || 0,
+          totalPaidAmount: b.paidAmount || 0,
+          totalBalanceDue: b.balanceDue || 0,
           workEntries: [workEntry],
         });
       }
@@ -117,16 +132,16 @@ export const FarmerListPage: React.FC = () => {
       const q = searchQuery.toLowerCase();
       return result.filter(
         (f) =>
-          f.fullName.toLowerCase().includes(q) ||
-          f.villageName.toLowerCase().includes(q) ||
-          f.mobileNumber.includes(q) ||
-          f.farmerCode.toLowerCase().includes(q)
+          (f.fullName || '').toLowerCase().includes(q) ||
+          (f.villageName || '').toLowerCase().includes(q) ||
+          (f.mobileNumber || '').toLowerCase().includes(q) ||
+          (f.farmerCode || '').toLowerCase().includes(q)
       );
     }
     return result;
   })();
 
-  // Selected farmer account object with fallback
+  // Selected farmer account object with safe fallback
   const selectedFarmer: FarmerLedgerAccount | undefined = 
     ledgers.find(l => l.id === selectedFarmerId) || ledgers[0];
 
@@ -167,8 +182,9 @@ export const FarmerListPage: React.FC = () => {
 
   const handleShareWhatsApp = () => {
     if (!selectedFarmer) return;
-    const phone = selectedFarmer.mobileNumber.replace(/\D/g, '');
-    const message = `Namaste ${selectedFarmer.fullName} Ji,\nYour AgriBOS Katha Statement:\nTotal Billed: ₹${selectedFarmer.totalBilledAmount.toLocaleString()}\nTotal Paid: ₹${(selectedFarmer.totalPaidAmount + selectedFarmer.totalAdvancePaid).toLocaleString()}\nBalance Due (Udhar): ₹${selectedFarmer.totalBalanceDue.toLocaleString()}\n\nThank you for working with Sri Basaveshwara & Co.`;
+    const rawMobile = (selectedFarmer.mobileNumber || '9880123456').toString();
+    const phone = rawMobile.replace(/\D/g, '');
+    const message = `Namaste ${selectedFarmer.fullName || 'Farmer'} Ji,\nYour AgriBOS Katha Statement:\nTotal Billed: ₹${(selectedFarmer.totalBilledAmount || 0).toLocaleString()}\nTotal Paid: ₹${((selectedFarmer.totalPaidAmount || 0) + (selectedFarmer.totalAdvancePaid || 0)).toLocaleString()}\nBalance Due (Udhar): ₹${(selectedFarmer.totalBalanceDue || 0).toLocaleString()}\n\nThank you for working with Sri Basaveshwara & Co.`;
     window.open(`https://wa.me/91${phone}?text=${encodeURIComponent(message)}`, '_blank');
   };
 
@@ -305,6 +321,7 @@ export const FarmerListPage: React.FC = () => {
           ) : (
             ledgers.map((farmer) => {
               const isSelected = selectedFarmer?.id === farmer.id;
+              const balance = farmer.totalBalanceDue || 0;
               return (
                 <button
                   key={farmer.id}
@@ -317,13 +334,13 @@ export const FarmerListPage: React.FC = () => {
                 >
                   <div className="flex justify-between items-start">
                     <span className={`text-[10px] font-black uppercase font-mono px-2 py-0.5 rounded-md ${isSelected ? 'bg-emerald-700/60 text-emerald-100' : 'bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400'}`}>
-                      {farmer.farmerCode}
+                      {farmer.farmerCode || 'FAR-100'}
                     </span>
-                    {farmer.totalBalanceDue > 0 ? (
+                    {balance > 0 ? (
                       <span className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider ${
                         isSelected ? 'bg-white text-red-600 shadow-xs' : 'bg-red-100 dark:bg-red-950 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900'
                       }`}>
-                        UDHAR: ₹{farmer.totalBalanceDue.toLocaleString()}
+                        UDHAR: ₹{balance.toLocaleString()}
                       </span>
                     ) : (
                       <span className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full uppercase ${
@@ -333,12 +350,12 @@ export const FarmerListPage: React.FC = () => {
                       </span>
                     )}
                   </div>
-                  <h4 className="text-xs font-black mt-2 truncate">{farmer.fullName}</h4>
+                  <h4 className="text-xs font-black mt-2 truncate">{farmer.fullName || 'Farmer'}</h4>
                   <div className={`flex items-center space-x-1 text-[11px] mt-1 font-medium ${isSelected ? 'text-emerald-100' : 'text-slate-500 dark:text-slate-400'}`}>
                     <Phone className="w-3 h-3 shrink-0" />
-                    <span>{farmer.mobileNumber}</span>
+                    <span>{farmer.mobileNumber || '9880123456'}</span>
                     <span className="mx-1">•</span>
-                    <span className="truncate">{farmer.villageName}</span>
+                    <span className="truncate">{farmer.villageName || 'Sindhanur'}</span>
                   </div>
                 </button>
               );
@@ -360,13 +377,13 @@ export const FarmerListPage: React.FC = () => {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-5 border-b border-slate-700/60 relative z-10">
               <div className="flex items-center space-x-4">
                 <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-500 to-emerald-400 text-white font-black text-2xl flex items-center justify-center shadow-lg shadow-emerald-500/30 border border-emerald-300/30 shrink-0">
-                  {selectedFarmer.fullName ? selectedFarmer.fullName.charAt(0) : 'F'}
+                  {(selectedFarmer.fullName || 'F').charAt(0).toUpperCase()}
                 </div>
                 <div>
                   <div className="flex items-center space-x-2">
-                    <h2 className="text-2xl font-black tracking-tight">{selectedFarmer.fullName}</h2>
+                    <h2 className="text-2xl font-black tracking-tight">{selectedFarmer.fullName || 'Farmer'}</h2>
                     <span className="text-[10px] font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2.5 py-0.5 rounded-full font-mono">
-                      {selectedFarmer.farmerCode}
+                      {selectedFarmer.farmerCode || 'FAR-100'}
                     </span>
                   </div>
                   {selectedFarmer.fatherName && (
@@ -377,12 +394,12 @@ export const FarmerListPage: React.FC = () => {
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-300 mt-1 font-medium">
                     <span className="flex items-center space-x-1">
                       <Phone className="w-3.5 h-3.5 text-emerald-400" />
-                      <span className="font-mono font-bold">{selectedFarmer.mobileNumber}</span>
+                      <span className="font-mono font-bold">{selectedFarmer.mobileNumber || '9880123456'}</span>
                     </span>
                     <span>•</span>
                     <span className="flex items-center space-x-1">
                       <MapPin className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>{selectedFarmer.villageName}, {selectedFarmer.talukName}</span>
+                      <span>{selectedFarmer.villageName || 'Sindhanur'}, {selectedFarmer.talukName || 'Gangavati'}</span>
                     </span>
                   </div>
                 </div>
@@ -392,7 +409,7 @@ export const FarmerListPage: React.FC = () => {
               <div className="flex items-center space-x-3 self-start md:self-auto">
                 <button
                   onClick={handleShareWhatsApp}
-                  className="flex items-center space-x-1.5 bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-3.5 py-2 rounded-xl text-xs transition-all shadow-sm"
+                  className="flex items-center space-x-1.5 bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-3.5 py-2 rounded-xl text-xs transition-all shadow-sm cursor-pointer"
                 >
                   <Share2 className="w-3.5 h-3.5" />
                   <span>WhatsApp Statement</span>
@@ -403,11 +420,11 @@ export const FarmerListPage: React.FC = () => {
                     KATHA STATUS
                   </span>
                   <span className={`inline-block mt-0.5 px-3 py-1 rounded-xl text-xs font-black uppercase tracking-wider ${
-                    selectedFarmer.totalBalanceDue > 0 
+                    (selectedFarmer.totalBalanceDue || 0) > 0
                       ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
                       : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
                   }`}>
-                    {selectedFarmer.totalBalanceDue > 0 ? 'PENDING UDHAR' : 'ALL CLEAR'}
+                    {(selectedFarmer.totalBalanceDue || 0) > 0 ? 'PENDING UDHAR' : 'ALL CLEAR'}
                   </span>
                 </div>
               </div>
@@ -452,218 +469,192 @@ export const FarmerListPage: React.FC = () => {
 
           </div>
 
-          {/* Farmer Machine Work & Bill Entry Table */}
-          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden">
-            <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-              <h3 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
-                <Receipt className="w-4 h-4 text-emerald-600" />
-                <span>FIELD WORK & BILLING LEDGER ENTRIES FOR {selectedFarmer.fullName.toUpperCase()}</span>
-              </h3>
-              <span className="text-[11px] font-extrabold text-slate-400 font-mono">
-                {selectedFarmer.workEntries?.length || 0} Records
-              </span>
+          {/* Work Sessions & Billing Ledger Table for Selected Farmer */}
+          <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl border border-slate-200/80 dark:border-slate-800 shadow-xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200/80 dark:border-slate-800">
+              <div>
+                <h3 className="text-base font-black text-slate-900 dark:text-white uppercase flex items-center gap-2">
+                  <Receipt className="w-5 h-5 text-emerald-500" />
+                  <span>Work Session Logs & Invoice History</span>
+                </h3>
+                <p className="text-xs text-slate-500 font-medium mt-0.5">
+                  Detailed logs of machine hours, rates, advance collections, and pending balances.
+                </p>
+              </div>
             </div>
 
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 text-[10px] font-black text-slate-400 uppercase tracking-wider">
-                    <th className="p-4">BILL NO & DATE</th>
-                    <th className="p-4">MACHINE & OPERATOR</th>
-                    <th className="p-4">FIELD & CROP</th>
-                    <th className="p-4">WORK HOURS & RATE</th>
-                    <th className="p-4">TOTAL (₹)</th>
-                    <th className="p-4">ADVANCE (₹)</th>
-                    <th className="p-4">PAID (₹)</th>
-                    <th className="p-4">BALANCE DUE (₹)</th>
-                    <th className="p-4">STATUS</th>
-                    <th className="p-4 text-right">ACTION</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-xs font-medium text-slate-800 dark:text-slate-200">
-                  {selectedFarmer.workEntries?.map((entry) => (
-                    <tr key={entry.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors">
-                      
-                      {/* Bill No & Date */}
-                      <td className="p-4">
-                        <div className="font-black font-mono text-emerald-600 dark:text-emerald-400">
-                          {entry.billNumber}
-                        </div>
-                        <div className="text-[10px] text-slate-400 font-semibold mt-0.5">
-                          {new Date(entry.workDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                        </div>
-                      </td>
-
-                      {/* Machine & Operator */}
-                      <td className="p-4">
-                        <div className="font-extrabold text-slate-900 dark:text-white">{entry.machineName}</div>
-                        <div className="text-[10px] text-slate-400 font-semibold mt-0.5">Op: {entry.operatorName}</div>
-                      </td>
-
-                      {/* Field & Crop */}
-                      <td className="p-4">
-                        <div className="font-semibold text-slate-800 dark:text-slate-200">{entry.cropType}</div>
-                        <div className="text-[10px] text-slate-400 font-medium">{entry.villageName}</div>
-                      </td>
-
-                      {/* Work Hours & Rate */}
-                      <td className="p-4 font-mono">
-                        <div className="font-bold">{entry.workHours} Hrs</div>
-                        <div className="text-[10px] text-slate-400">@ ₹{entry.ratePerUnit}/hr</div>
-                      </td>
-
-                      {/* Total Amount */}
-                      <td className="p-4 font-mono font-black text-slate-900 dark:text-white">
-                        ₹{entry.totalAmount.toLocaleString()}
-                      </td>
-
-                      {/* Advance */}
-                      <td className="p-4 font-mono font-bold text-slate-600 dark:text-slate-400">
-                        ₹{entry.advanceAmount.toLocaleString()}
-                      </td>
-
-                      {/* Paid Amount */}
-                      <td className="p-4 font-mono font-extrabold text-emerald-600 dark:text-emerald-400">
-                        ₹{entry.paidAmount.toLocaleString()}
-                      </td>
-
-                      {/* Balance Due */}
-                      <td className="p-4 font-mono font-black text-red-600 dark:text-red-400">
-                        ₹{entry.balanceDue.toLocaleString()}
-                      </td>
-
-                      {/* Status Badge */}
-                      <td className="p-4">
-                        <span className={`px-2.5 py-1 text-[10px] font-black rounded-lg uppercase tracking-wider border ${
-                          entry.status === 'PAID'
-                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900'
-                            : entry.status === 'PARTIAL'
-                            ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border-amber-200 dark:border-amber-900'
-                            : 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300 border-red-200 dark:border-red-900'
-                        }`}>
-                          {entry.status}
-                        </span>
-                      </td>
-
-                      {/* Actions */}
-                      <td className="p-4 text-right">
-                        {entry.balanceDue > 0 ? (
-                          <button
-                            onClick={() => {
-                              setSelectedWorkEntry(entry);
-                              setPaymentAmount(entry.balanceDue);
-                              setIsPaymentModalOpen(true);
-                            }}
-                            className="bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold px-3.5 py-1.5 rounded-xl text-xs transition-all shadow-xs hover:scale-105 active:scale-95"
-                          >
-                            Collect ₹
-                          </button>
-                        ) : (
-                          <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase font-mono">SETTLED</span>
-                        )}
-                      </td>
-
+              {(selectedFarmer.workEntries || []).length === 0 ? (
+                <div className="text-center py-10 text-slate-400 text-xs font-semibold">
+                  No machine work sessions logged for {selectedFarmer.fullName || 'this farmer'} yet.
+                </div>
+              ) : (
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="bg-slate-50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 font-extrabold uppercase border-b border-slate-200/80 dark:border-slate-800">
+                      <th className="py-3 px-4">Bill No / Date</th>
+                      <th className="py-3 px-4">Machine & Crop</th>
+                      <th className="py-3 px-4">Hours / Rate</th>
+                      <th className="py-3 px-4 text-right">Total Bill</th>
+                      <th className="py-3 px-4 text-right">Advance</th>
+                      <th className="py-3 px-4 text-right">Paid</th>
+                      <th className="py-3 px-4 text-right">Udhar Balance</th>
+                      <th className="py-3 px-4 text-center">Status</th>
+                      <th className="py-3 px-4 text-center">Action</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200/80 dark:divide-slate-800">
+                    {(selectedFarmer.workEntries || []).map((entry) => (
+                      <tr key={entry.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
+                        <td className="py-3.5 px-4">
+                          <div className="font-mono font-bold text-emerald-600 dark:text-emerald-400">{entry.billNumber || 'BILL'}</div>
+                          <div className="text-[10px] text-slate-400 font-medium">{entry.workDate}</div>
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <div className="font-bold text-slate-900 dark:text-slate-100">{entry.machineName || 'Machine'}</div>
+                          <div className="text-[10px] text-slate-400">{entry.cropType}</div>
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <div className="font-mono font-bold">{entry.workHours} hrs</div>
+                          <div className="text-[10px] text-slate-400">₹{entry.ratePerUnit}/hr</div>
+                        </td>
+                        <td className="py-3.5 px-4 text-right font-black font-mono">
+                          ₹{(entry.totalAmount || 0).toLocaleString()}
+                        </td>
+                        <td className="py-3.5 px-4 text-right font-semibold font-mono text-emerald-600">
+                          ₹{(entry.advanceAmount || 0).toLocaleString()}
+                        </td>
+                        <td className="py-3.5 px-4 text-right font-semibold font-mono text-blue-600">
+                          ₹{(entry.paidAmount || 0).toLocaleString()}
+                        </td>
+                        <td className="py-3.5 px-4 text-right font-black font-mono text-red-600 dark:text-red-400">
+                          ₹{(entry.balanceDue || 0).toLocaleString()}
+                        </td>
+                        <td className="py-3.5 px-4 text-center">
+                          <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase ${
+                            entry.status === 'PAID'
+                              ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                              : entry.status === 'PARTIAL'
+                              ? 'bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300'
+                              : 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300'
+                          }`}>
+                            {entry.status}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4 text-center">
+                          {(entry.balanceDue || 0) > 0 && (
+                            <button
+                              onClick={() => {
+                                setSelectedWorkEntry(entry);
+                                setPaymentAmount(entry.balanceDue || 0);
+                                setIsPaymentModalOpen(true);
+                              }}
+                              className="inline-flex items-center space-x-1 bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-xl text-[10px] font-extrabold transition-all shadow-xs cursor-pointer"
+                            >
+                              <DollarSign className="w-3 h-3" />
+                              <span>Collect Udhar</span>
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
           </div>
         </div>
       ) : (
-        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/80 dark:border-slate-800 p-12 text-center space-y-3">
-          <PackageCheck className="w-10 h-10 text-slate-400 mx-auto" />
-          <p className="text-sm font-bold text-slate-700 dark:text-slate-300">No farmer account selected</p>
-          <p className="text-xs text-slate-400">Search by farmer name or phone number above to inspect katha ledger.</p>
+        <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl border border-slate-200 dark:border-slate-800 text-center text-slate-400 text-xs font-semibold">
+          Select a farmer account above to view detailed Katha passbook & work execution logs.
         </div>
       )}
 
-      {/* RECORD PAYMENT MODAL */}
+      {/* Register Farmer Dialog */}
+      <FarmerFormDialog
+        isOpen={isRegisterOpen}
+        onClose={() => setIsRegisterOpen(false)}
+        onSubmit={async (data) => { await createMutation.mutateAsync(data); }}
+        isLoading={createMutation.isPending}
+      />
+
+      {/* Payment Receipt Collection Modal */}
       {isPaymentModalOpen && selectedWorkEntry && selectedFarmer && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
-            
-            <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-start">
-              <div>
-                <h2 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">
-                  COLLECT FARMER PAYMENT
-                </h2>
-                <p className="text-xs font-semibold text-slate-400 mt-0.5">
-                  Record payment collection for {selectedFarmer.fullName}
-                </p>
-              </div>
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 w-full max-w-md rounded-3xl p-6 shadow-2xl space-y-5 animate-in fade-in zoom-in-95">
+            <div className="flex justify-between items-center pb-3 border-b border-slate-200 dark:border-slate-800">
+              <h3 className="text-base font-black text-slate-900 dark:text-white uppercase flex items-center gap-2">
+                <DollarSign className="w-5 h-5 text-emerald-500" />
+                <span>COLLECT UDHAR PAYMENT</span>
+              </h3>
               <button
                 onClick={() => setIsPaymentModalOpen(false)}
-                className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800"
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleCollectPayment} className="p-6 space-y-4">
-              
-              <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl space-y-2 border border-slate-200/80 dark:border-slate-700">
-                <div className="flex justify-between text-xs font-semibold">
-                  <span className="text-slate-500">Bill Number:</span>
-                  <span className="font-mono font-bold text-emerald-600">{selectedWorkEntry.billNumber}</span>
-                </div>
-                <div className="flex justify-between text-xs font-semibold">
-                  <span className="text-slate-500">Machine & Crop:</span>
-                  <span className="font-bold text-slate-800 dark:text-slate-200">{selectedWorkEntry.cropType}</span>
-                </div>
-                <div className="flex justify-between text-xs font-bold border-t border-slate-200 dark:border-slate-700 pt-2 mt-2">
-                  <span className="text-red-500">Current Pending Balance:</span>
-                  <span className="font-mono text-red-600 text-sm">₹{selectedWorkEntry.balanceDue.toLocaleString()}</span>
-                </div>
+            <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl space-y-2 border border-slate-200 dark:border-slate-700/60">
+              <div className="flex justify-between text-xs">
+                <span className="text-slate-500 font-medium">Farmer:</span>
+                <span className="font-bold text-slate-900 dark:text-white">{selectedFarmer.fullName}</span>
               </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-slate-500 font-medium">Bill Number:</span>
+                <span className="font-mono font-bold text-emerald-600">{selectedWorkEntry.billNumber}</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-slate-500 font-medium">Outstanding Udhar:</span>
+                <span className="font-mono font-black text-red-600">₹{(selectedWorkEntry.balanceDue || 0).toLocaleString()}</span>
+              </div>
+            </div>
 
-              {/* Payment Amount */}
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                  COLLECTION AMOUNT (₹) *
+            <form onSubmit={handleCollectPayment} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Payment Amount to Collect (₹)
                 </label>
                 <input
                   type="number"
-                  max={selectedWorkEntry.balanceDue}
+                  max={selectedWorkEntry.balanceDue || 0}
                   value={paymentAmount}
                   onChange={(e) => setPaymentAmount(Number(e.target.value))}
-                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-base font-black font-mono text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-2xl px-4 py-2.5 text-base font-black font-mono text-emerald-600 focus:ring-2 focus:ring-emerald-500"
                   required
                 />
               </div>
 
-              {/* Payment Mode */}
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                  PAYMENT MODE *
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Payment Collection Mode
                 </label>
                 <select
                   value={paymentMode}
                   onChange={(e) => setPaymentMode(e.target.value as any)}
-                  className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs font-bold text-slate-800 dark:text-slate-100 focus:ring-2 focus:ring-emerald-500"
+                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-2xl px-4 py-2.5 text-xs font-bold text-slate-900 dark:text-white"
                 >
                   <option value="UPI / PhonePe">UPI / PhonePe / GPay</option>
                   <option value="Cash">Cash Handover</option>
-                  <option value="Bank Transfer">Bank NEFT / IMPS</option>
+                  <option value="Bank Transfer">Direct Bank Transfer</option>
                 </select>
               </div>
 
-              <div className="flex justify-end items-center space-x-3 pt-3">
+              <div className="flex justify-end space-x-3 pt-3">
                 <button
                   type="button"
                   onClick={() => setIsPaymentModalOpen(false)}
-                  className="px-4 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-2xl text-xs"
+                  className="px-4 py-2.5 rounded-2xl text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold rounded-2xl text-xs shadow-md transition-all hover:scale-105"
+                  className="px-6 py-2.5 rounded-2xl text-xs font-extrabold bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20"
                 >
-                  Confirm Payment ₹
+                  Confirm Receipt Entry
                 </button>
               </div>
-
             </form>
           </div>
         </div>
