@@ -26,26 +26,32 @@ apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
-    // Don't retry refresh requests themselves
-    if (originalRequest?.url?.includes('/auth/refresh') || originalRequest?.url?.includes('/auth/login')) {
+    // Don't retry refresh, login, or logout requests themselves to avoid infinite loops
+    if (
+      !originalRequest ||
+      originalRequest.url?.includes('/auth/refresh') ||
+      originalRequest.url?.includes('/auth/login') ||
+      originalRequest.url?.includes('/auth/logout')
+    ) {
       return Promise.reject(error);
     }
 
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
-      const refreshToken = useAuthStore.getState().refreshToken;
 
       try {
-        const res = await axios.post(`${API_BASE_URL}/auth/refresh`, { refreshToken }, { withCredentials: true });
+        const res = await axios.post(`${API_BASE_URL}/auth/refresh`, {}, { withCredentials: true });
         if (res.data?.success) {
-          const { accessToken, refreshToken: newRefreshToken } = res.data.data;
-          useAuthStore.getState().setTokens(accessToken, newRefreshToken);
+          const { accessToken } = res.data.data;
+          useAuthStore.getState().setTokens(accessToken);
           originalRequest.headers.Authorization = `Bearer ${accessToken}`;
           return apiClient(originalRequest);
         }
       } catch (refreshErr) {
         useAuthStore.getState().logout();
-        window.location.href = '/login';
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login';
+        }
       }
     }
     return Promise.reject(error);

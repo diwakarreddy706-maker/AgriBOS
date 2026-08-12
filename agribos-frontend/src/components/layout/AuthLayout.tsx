@@ -1,9 +1,19 @@
 import React from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, Navigate } from 'react-router-dom';
 import { useLanguageStore } from '../../store/useLanguageStore';
+import { useAuthStore } from '../../store/useAuthStore';
 
 export const AuthLayout: React.FC = () => {
   const { t } = useLanguageStore();
+  const { isAuthenticated, isInitializing } = useAuthStore();
+
+  if (isInitializing) {
+    return null;
+  }
+
+  if (isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-agri-900 via-slate-900 to-slate-950 p-4">
