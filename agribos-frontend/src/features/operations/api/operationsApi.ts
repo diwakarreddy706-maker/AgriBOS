@@ -125,4 +125,15 @@ export const operationsApi = {
     const res = await apiClient.post('/work-executions', payload);
     return res.data.data;
   },
+
+  getWorkExecutions: async (search?: string, machineType?: string, farmerId?: number, page = 0, size = 20) => {
+    try {
+      const res = await apiClient.get('/work-executions', {
+        params: { search, machineType, farmerId, page, size }
+      });
+      return res.data?.data || { content: [], totalElements: 0 };
+    } catch {
+      return { content: [], totalElements: 0 };
+    }
+  },
 };

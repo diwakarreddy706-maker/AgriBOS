@@ -99,27 +99,40 @@ export interface DispatchCreatePayload {
 }
 
 export interface WorkExecutionCreatePayload {
-  bookingId: number;
+  bookingId?: number;
+  farmerId?: number;
   dispatchId?: number;
-  machineId: number;
-  operatorId: number;
-  executionDate: string;
-  startTime: string;
+  machineId?: number;
+  operatorId?: number;
+  executionDate?: string;
+  workDate?: string;
+  startTime?: string;
   endTime?: string;
   workingHours?: number;
+  workHours?: number;
+  netWorkingHours?: number;
   idleHours?: number;
   travelHours?: number;
   breakHours?: number;
+  rateType?: 'HOURLY' | 'ACRE';
+  ratePerUnit?: number;
+  advanceCollected?: number;
+  advanceAmount?: number;
+  paidAmount?: number;
+  villageName?: string;
+  operatorName?: string;
+  billNumber?: string;
+  notes?: string;
+  remarks?: string;
   estimatedAcres?: number;
   actualAcres?: number;
-  startHourMeter: number;
+  startHourMeter?: number;
   endHourMeter?: number;
   cropCondition?: string;
   weatherCondition?: string;
-  dieselResponsibility: DieselResponsibility;
+  dieselResponsibility?: DieselResponsibility;
   dieselProviderName?: string;
   dieselVoucherNumber?: string;
-  remarks?: string;
 }
 
 export interface OperationsDashboardMetrics {

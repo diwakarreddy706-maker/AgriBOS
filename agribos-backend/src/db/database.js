@@ -423,7 +423,11 @@ export const initPgSchema = async (client = null) => {
       operator_name VARCHAR(255),
       village_name VARCHAR(255),
       crop_type VARCHAR(100),
+      start_time VARCHAR(50),
+      end_time VARCHAR(50),
+      break_hours DECIMAL(12,2) DEFAULT 0,
       work_hours DECIMAL(12,2) DEFAULT 0,
+      rate_type VARCHAR(50) DEFAULT 'HOURLY',
       rate_per_unit DECIMAL(12,2) DEFAULT 0,
       total_amount DECIMAL(12,2) DEFAULT 0,
       advance_amount DECIMAL(12,2) DEFAULT 0,
@@ -860,7 +864,11 @@ export const initSqliteSchema = async () => {
       operator_name TEXT,
       village_name TEXT,
       crop_type TEXT,
+      start_time TEXT,
+      end_time TEXT,
+      break_hours REAL DEFAULT 0,
       work_hours REAL DEFAULT 0,
+      rate_type TEXT DEFAULT 'HOURLY',
       rate_per_unit REAL DEFAULT 0,
       total_amount REAL DEFAULT 0,
       advance_amount REAL DEFAULT 0,
@@ -1087,11 +1095,37 @@ export const initSqliteSchema = async () => {
   await exec(schema);
 };
 
+async function ensureWorkEntriesColumns() {
+  const newCols = [
+    { name: 'start_time', typePg: 'VARCHAR(50)', typeSqlite: 'TEXT' },
+    { name: 'end_time', typePg: 'VARCHAR(50)', typeSqlite: 'TEXT' },
+    { name: 'break_hours', typePg: 'DECIMAL(12,2) DEFAULT 0', typeSqlite: 'REAL DEFAULT 0' },
+    { name: 'rate_type', typePg: "VARCHAR(50) DEFAULT 'HOURLY'", typeSqlite: "TEXT DEFAULT 'HOURLY'" },
+  ];
+
+  for (const col of newCols) {
+    try {
+      if (isPostgres) {
+        await exec(`ALTER TABLE work_entries ADD COLUMN IF NOT EXISTS ${col.name} ${col.typePg}`);
+      } else {
+        const tableInfo = await query("PRAGMA table_info('work_entries')");
+        const exists = tableInfo.some((c) => c.name === col.name);
+        if (!exists) {
+          await exec(`ALTER TABLE work_entries ADD COLUMN ${col.name} ${col.typeSqlite}`);
+        }
+      }
+    } catch (e) {
+      // Column may already exist
+    }
+  }
+}
+
 // Primary Initialization Routine
 export const initDb = async () => {
   if (isPostgres) {
     console.log('⚡ Active Database Engine: PostgreSQL');
     await initPgSchema();
+    await ensureWorkEntriesColumns();
     const adminUser = await get('SELECT * FROM users WHERE username = $1', ['admin']);
     if (!adminUser) {
       const defaultHash = await bcrypt.hash('Admin@123', 10);
@@ -1104,6 +1138,7 @@ export const initDb = async () => {
   } else {
     console.log('⚡ Active Database Engine: SQLite');
     await initSqliteSchema();
+    await ensureWorkEntriesColumns();
     const adminUser = await get('SELECT * FROM users WHERE username = ?', ['admin']);
     if (!adminUser) {
       const defaultHash = await bcrypt.hash('Admin@123', 10);

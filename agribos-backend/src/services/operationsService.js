@@ -11,6 +11,10 @@ export const operationsService = {
     return operationsRepository.findBookings(query);
   },
 
+  getWorkExecutions: async (query) => {
+    return operationsRepository.getWorkExecutions(query);
+  },
+
   createBooking: async (data) => {
     return operationsRepository.createBooking(data);
   },

@@ -135,6 +135,7 @@ apiRouter.post('/bookings/assign-machine', authenticateToken, operationsControll
 apiRouter.post('/bookings/assign-operator', authenticateToken, operationsController.assignOperator);
 apiRouter.post('/bookings/:id/advance', authenticateToken, operationsController.recordAdvancePayment);
 apiRouter.post('/dispatches', authenticateToken, operationsController.createDispatch);
+apiRouter.get('/work-executions', authenticateToken, operationsController.getWorkExecutions);
 apiRouter.post('/work-executions', authenticateToken, operationsController.logWorkExecution);
 
 // Fuel Management Routes (Protected)

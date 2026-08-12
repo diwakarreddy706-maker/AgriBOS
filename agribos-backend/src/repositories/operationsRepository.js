@@ -100,7 +100,7 @@ export const operationsRepository = {
 
   createBooking: async (data) => {
     return runInTransaction(async () => {
-      const bookingNumber = `BK-2026-${Math.floor(100 + Math.random() * 900)}`;
+      const bookingNumber = data.bookingNumber || `BK-2026-${Math.floor(100000 + Math.random() * 900000)}`;
       const bookingDate = new Date().toISOString().split('T')[0];
 
       const result = await run(
@@ -153,42 +153,156 @@ export const operationsRepository = {
     });
   },
 
+  getWorkExecutions: async ({ search, machineType, farmerId, page = 0, size = 20 }) => {
+    const pageNum = parseInt(page, 10) || 0;
+    const pageSize = parseInt(size, 10) || 20;
+    const offset = pageNum * pageSize;
+
+    let sql = `
+      SELECT w.*,
+             f.full_name as farmer_name, f.mobile_number as farmer_phone, f.village_name as farmer_village,
+             m.machine_code, m.machine_name, m.registration_number
+      FROM work_entries w
+      LEFT JOIN farmers f ON w.farmer_id = f.id
+      LEFT JOIN machines m ON w.machine_id = m.id
+      WHERE w.is_deleted = 0
+    `;
+    let countSql = 'SELECT COUNT(*) as count FROM work_entries w WHERE w.is_deleted = 0';
+    const params = [];
+
+    if (machineType) {
+      sql += ' AND m.machine_type = ?';
+      countSql += ' AND m.machine_type = ?';
+      params.push(machineType);
+    }
+
+    if (farmerId) {
+      sql += ' AND w.farmer_id = ?';
+      countSql += ' AND w.farmer_id = ?';
+      params.push(farmerId);
+    }
+
+    if (search) {
+      const q = `%${search}%`;
+      sql += ' AND (w.bill_number LIKE ? OR f.full_name LIKE ? OR f.mobile_number LIKE ? OR f.village_name LIKE ? OR m.machine_name LIKE ? OR m.machine_code LIKE ?)';
+      countSql += ' AND (w.bill_number LIKE ? OR f.full_name LIKE ? OR f.mobile_number LIKE ? OR f.village_name LIKE ? OR m.machine_name LIKE ? OR m.machine_code LIKE ?)';
+      params.push(q, q, q, q, q, q);
+    }
+
+    sql += ' ORDER BY w.id DESC LIMIT ? OFFSET ?';
+    const rows = await query(sql, [...params, pageSize, offset]);
+    const totalRow = await get(countSql, params);
+    const totalElements = totalRow ? totalRow.count : 0;
+    const totalPages = Math.ceil(totalElements / pageSize) || (totalElements > 0 ? 1 : 0);
+
+    const formatted = rows.map(r => ({
+      id: r.id,
+      billNumber: r.bill_number,
+      workDate: r.work_date,
+      farmerId: r.farmer_id,
+      farmerName: r.farmer_name || r.operator_name || 'Farmer',
+      mobileNumber: r.farmer_phone || '',
+      villageName: r.village_name || r.farmer_village || '',
+      machineId: r.machine_id,
+      machineCode: r.machine_code || 'MAC-4678',
+      machineName: r.machine_name || 'AgriBOS Harvester',
+      startTime: r.start_time || '08:00 AM',
+      endTime: r.end_time || '05:30 PM',
+      breakHours: parseFloat(r.break_hours || 0),
+      netWorkingHours: parseFloat(r.work_hours || 0),
+      workHours: parseFloat(r.work_hours || 0),
+      rateType: r.rate_type || 'HOURLY',
+      ratePerUnit: parseFloat(r.rate_per_unit || 0),
+      totalAmount: parseFloat(r.total_amount || 0),
+      advanceAmount: parseFloat(r.advance_amount || 0),
+      paidAmount: parseFloat(r.paid_amount || 0),
+      balanceDue: parseFloat(r.balance_due || 0),
+      status: r.status || 'UNPAID',
+      notes: r.notes || '',
+      createdAt: r.created_at
+    }));
+
+    return {
+      content: formatted,
+      page: pageNum,
+      pageSize,
+      totalElements,
+      totalPages,
+      last: pageNum >= totalPages - 1
+    };
+  },
+
   logWorkExecution: async (data) => {
-    return runInTransaction(async () => {
-      const billNumber = `BILL-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+    return runInTransaction(async (txClient) => {
+      // Validate inputs
+      const farmerId = parseInt(data.farmerId, 10);
+      if (!farmerId || isNaN(farmerId)) {
+        throw new Error('Valid farmer ID is required');
+      }
+
+      const farmer = await get('SELECT * FROM farmers WHERE id = ? AND is_deleted = 0', [farmerId]);
+      if (!farmer) {
+        throw new Error(`Farmer with ID ${farmerId} does not exist`);
+      }
+
+      let machine = null;
+      if (data.machineId) {
+        machine = await get('SELECT * FROM machines WHERE id = ? AND is_deleted = 0', [data.machineId]);
+        if (!machine) {
+          throw new Error(`Machine with ID ${data.machineId} does not exist`);
+        }
+      }
+
+      const workHoursInput = parseFloat(data.netWorkingHours || data.hoursOrAcresWorked || data.workHours || 8.0);
+      const breakHoursInput = parseFloat(data.breakHours || 0);
+      const ratePerUnitInput = parseFloat(data.ratePerUnit || machine?.hourly_rate || 2400);
+      const advanceInput = parseFloat(data.advanceCollected || data.advanceAmount || 0);
+      const paidInput = parseFloat(data.paidAmount || 0);
+
+      if (workHoursInput < 0 || breakHoursInput < 0 || ratePerUnitInput < 0 || advanceInput < 0 || paidInput < 0) {
+        throw new Error('Work hours, rates, and payments cannot be negative');
+      }
+
+      const rateType = data.rateType || 'HOURLY';
+      const hours = Math.max(0, workHoursInput);
+      const rate = ratePerUnitInput;
+      const total = hours * rate;
+
+      const totalPaid = Math.min(total, advanceInput + paidInput);
+      const balance = Math.max(0, total - totalPaid);
+      const status = balance === 0 ? 'PAID' : (totalPaid > 0 ? 'PARTIAL' : 'UNPAID');
+
+      const billYear = new Date().getFullYear();
+      const randomSuffix = Math.floor(100000 + Math.random() * 900000);
+      const billNumber = data.billNumber || `BILL-${billYear}-${randomSuffix}`;
       const workDate = data.workDate || new Date().toISOString().split('T')[0];
 
-      const farmer = await get('SELECT * FROM farmers WHERE id = ?', [data.farmerId || 1]);
-      const machine = await get('SELECT * FROM machines WHERE id = ?', [data.machineId || 1]);
-
-      const hours = parseFloat(data.hoursOrAcresWorked || data.workHours || 8.0);
-      const rate = parseFloat(data.ratePerUnit || machine?.hourly_rate || 2400);
-      const total = hours * rate;
-      const advance = parseFloat(data.advanceCollected || 0);
-      const paid = advance;
-      const balance = Math.max(0, total - paid);
-      const status = balance === 0 ? 'PAID' : (paid > 0 ? 'PARTIAL' : 'UNPAID');
-
       const result = await run(
-        `INSERT INTO work_entries (bill_number, work_date, farmer_id, machine_id, machine_name, operator_name, village_name, crop_type, work_hours, rate_per_unit, total_amount, advance_amount, paid_amount, balance_due, status, notes)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO work_entries (
+          bill_number, work_date, farmer_id, machine_id, machine_name, operator_name, village_name, crop_type,
+          start_time, end_time, break_hours, work_hours, rate_type, rate_per_unit, total_amount, advance_amount, paid_amount, balance_due, status, notes
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           billNumber,
           workDate,
-          data.farmerId || 1,
+          farmerId,
           data.machineId || null,
-          machine?.machine_name || 'AgriBOS Harvester',
+          machine?.machine_name || data.machineName || 'AgriBOS Machine',
           data.operatorName || 'Operator',
-          farmer?.village_name || data.villageName || 'Sindhanur',
-          data.cropType || 'Paddy Harvesting',
+          farmer.village_name || data.villageName || 'Sindhanur',
+          data.cropType || 'Field Operations',
+          data.startTime || '08:00 AM',
+          data.endTime || '05:30 PM',
+          breakHoursInput,
           hours,
+          rateType,
           rate,
           total,
-          advance,
-          paid,
+          advanceInput,
+          totalPaid,
           balance,
           status,
-          data.remarks || 'Work Execution Logged'
+          data.notes || data.remarks || 'Work Execution Logged'
         ]
       );
 

@@ -25,6 +25,21 @@ export const getBookings = async (req, res, next) => {
   }
 };
 
+export const getWorkExecutions = async (req, res, next) => {
+  try {
+    const result = await operationsService.getWorkExecutions(req.query);
+    return sendSuccess(res, result.content, 'Work executions retrieved', {
+      page: result.page,
+      pageSize: result.pageSize,
+      totalElements: result.totalElements,
+      totalPages: result.totalPages,
+      last: result.last
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const createBooking = async (req, res, next) => {
   try {
     const booking = await operationsService.createBooking(req.body);
@@ -94,6 +109,7 @@ export const recordAdvancePayment = async (req, res, next) => {
 export default {
   getDashboardMetrics,
   getBookings,
+  getWorkExecutions,
   createBooking,
   updateBookingStatus,
   assignMachine,

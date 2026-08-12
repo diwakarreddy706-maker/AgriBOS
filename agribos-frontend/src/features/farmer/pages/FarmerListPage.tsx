@@ -70,7 +70,7 @@ export const FarmerListPage: React.FC = () => {
       const workEntry: FarmerWorkEntry = {
         id: b.id || 9000 + idx,
         billNumber: b.billNumber,
-        workDate: b.billDate,
+        workDate: b.billDate || b.workDate || '',
         machineName: b.machineName,
         operatorName: 'Driver / Operator',
         villageName: b.villageName,

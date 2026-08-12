@@ -43,7 +43,8 @@ export interface FinanceDashboardMetrics {
 export interface MachineBillEntry {
   id: number;
   billNumber: string;
-  billDate: string;
+  billDate?: string;
+  workDate?: string;
   machineId: number;
   machineCode: string;
   machineName: string;
