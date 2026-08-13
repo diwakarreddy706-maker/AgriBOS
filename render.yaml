@@ -4,7 +4,7 @@ services:
     name: agribos-backend
     runtime: node
     plan: free
-    buildCommand: pnpm install --frozen-lockfile
+    buildCommand: pnpm install --frozen-lockfile --config.ignored-builds=false
     startCommand: pnpm --filter @agribos/backend start
     healthCheckPath: /api/v1/health
     envVars:
@@ -26,7 +26,7 @@ services:
   - type: web
     name: agribos-frontend
     runtime: static
-    buildCommand: pnpm install --frozen-lockfile && pnpm --filter @agribos/frontend build
+    buildCommand: pnpm install --frozen-lockfile --config.ignored-builds=false && pnpm --filter @agribos/frontend build
     staticPublishPath: apps/frontend/dist
     routes:
       - type: rewrite
