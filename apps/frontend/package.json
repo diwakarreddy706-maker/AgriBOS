@@ -1,16 +1,18 @@
 {
-  "name": "agribos-frontend",
+  "name": "@agribos/frontend",
   "private": true,
   "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "typecheck": "tsc --noEmit",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "test": "vitest run"
   },
   "dependencies": {
+    "@agribos/shared": "workspace:*",
     "@hookform/resolvers": "^5.5.7",
     "@tanstack/react-query": "^5.51.1",
     "axios": "^1.7.2",

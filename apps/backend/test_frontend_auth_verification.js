@@ -20,7 +20,8 @@ console.log('====================================================\n');
 
 // 1. Inspect MainLayout.tsx & Route Protections
 console.log('--- 1. ROUTE GUARD & PROTECTION AUDIT ---');
-const mainLayoutPath = path.resolve('../agribos-frontend/src/components/layout/MainLayout.tsx');
+const frontendBase = fs.existsSync(path.resolve('../frontend')) ? '../frontend' : '../agribos-frontend';
+const mainLayoutPath = path.resolve(`${frontendBase}/src/components/layout/MainLayout.tsx`);
 const mainLayoutContent = fs.readFileSync(mainLayoutPath, 'utf8');
 
 assert(mainLayoutContent.includes('useAuthStore'), 'MainLayout correctly connects to useAuthStore');
@@ -30,7 +31,7 @@ assert(mainLayoutContent.includes('isInitializing'), 'MainLayout prevents flash 
 
 // 2. Inspect App.tsx Route Structure
 console.log('\n--- 2. APP ROUTING & PATH AUDIT ---');
-const appPath = path.resolve('../agribos-frontend/src/App.tsx');
+const appPath = path.resolve(`${frontendBase}/src/App.tsx`);
 const appContent = fs.readFileSync(appPath, 'utf8');
 
 const protectedRoutes = [
@@ -54,14 +55,14 @@ assert(allRoutesProtected, `All 32 protected ERP routes mapped under MainLayout 
 
 // 3. Inspect AuthLayout.tsx Login Redirection
 console.log('\n--- 3. AUTH LAYOUT & LOGGED-IN REDIRECT AUDIT ---');
-const authLayoutPath = path.resolve('../agribos-frontend/src/components/layout/AuthLayout.tsx');
+const authLayoutPath = path.resolve(`${frontendBase}/src/components/layout/AuthLayout.tsx`);
 const authLayoutContent = fs.readFileSync(authLayoutPath, 'utf8');
 
 assert(authLayoutContent.includes('isAuthenticated') && authLayoutContent.includes('<Navigate to="/" replace />'), 'Authenticated users visiting /login are redirected to / (dashboard)');
 
 // 4. Inspect store & Security Storage rules
 console.log('\n--- 4. AUTH STORE & HTTPONLY COOKIE SECURITY AUDIT ---');
-const storePath = path.resolve('../agribos-frontend/src/store/useAuthStore.ts');
+const storePath = path.resolve(`${frontendBase}/src/store/useAuthStore.ts`);
 const storeContent = fs.readFileSync(storePath, 'utf8');
 
 assert(!storeContent.includes("localStorage.setItem('agribos_refresh_token'"), 'Refresh tokens are NOT saved to localStorage');
@@ -71,7 +72,7 @@ assert(storeContent.includes('checkAuth'), 'Session restoration routine checkAut
 
 // 5. Inspect apiClient 401 Interceptor & Infinite Loop Prevention
 console.log('\n--- 5. API CLIENT 401 INTERCEPTOR AUDIT ---');
-const apiClientPath = path.resolve('../agribos-frontend/src/lib/apiClient.ts');
+const apiClientPath = path.resolve(`${frontendBase}/src/lib/apiClient.ts`);
 const apiClientContent = fs.readFileSync(apiClientPath, 'utf8');
 
 assert(apiClientContent.includes("originalRequest.url?.includes('/auth/refresh')"), 'Interceptor excludes /auth/refresh from 401 retries');

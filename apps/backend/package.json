@@ -1,7 +1,7 @@
 {
-  "name": "agribos-backend-js",
+  "name": "@agribos/backend",
   "version": "1.0.0",
-  "description": "AgriBOS Agricultural Business Operating System - Full-Stack JavaScript (Node.js/Express + SQLite) Backend Service",
+  "description": "AgriBOS Agricultural Business Operating System - Backend Service",
   "main": "src/server.js",
   "type": "module",
   "scripts": {
@@ -10,6 +10,7 @@
     "test": "node test_hardening.js && node test_real_business_e2e.js"
   },
   "dependencies": {
+    "@agribos/shared": "workspace:*",
     "@fontsource/noto-sans-kannada": "^5.3.0",
     "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.7",
@@ -31,7 +32,8 @@
     "agribos",
     "express",
     "javascript",
-    "sqlite"
+    "sqlite",
+    "postgres"
   ],
   "author": "SRI BASAVESHWARA & CO.",
   "license": "ISC"

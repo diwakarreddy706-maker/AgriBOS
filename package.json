@@ -1,14 +1,15 @@
 {
-  "name": "agribos-fullstack-js",
+  "name": "agribos-monorepo",
   "version": "1.0.0",
   "private": true,
-  "description": "AgriBOS Agricultural Business Operating System - Full Stack JavaScript",
+  "description": "AgriBOS Agricultural Business Operating System - pnpm Monorepo Workspace",
   "scripts": {
-    "install:all": "npm --prefix agribos-backend install && npm --prefix agribos-frontend install",
-    "dev": "concurrently \"npm:dev:backend\" \"npm:dev:frontend\"",
-    "dev:backend": "npm --prefix agribos-backend run start",
-    "dev:frontend": "npm --prefix agribos-frontend run dev",
-    "start": "concurrently \"npm:dev:backend\" \"npm:dev:frontend\""
+    "dev": "concurrently \"pnpm dev:backend\" \"pnpm dev:frontend\"",
+    "dev:frontend": "pnpm --filter @agribos/frontend dev",
+    "dev:backend": "pnpm --filter @agribos/backend start",
+    "build": "pnpm --filter @agribos/frontend build",
+    "test": "pnpm --filter @agribos/backend test",
+    "typecheck": "pnpm --filter @agribos/frontend typecheck"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"
