@@ -131,8 +131,8 @@ export const operationsRepository = {
 
   assignMachine: async (bookingId, machineId) => {
     return runInTransaction(async () => {
-      await run('UPDATE bookings SET machine_id = ?, status = "ASSIGNED" WHERE id = ?', [machineId, bookingId]);
-      await run('UPDATE machines SET status = "IN_USE" WHERE id = ?', [machineId]);
+      await run("UPDATE bookings SET machine_id = ?, status = 'ASSIGNED' WHERE id = ?", [machineId, bookingId]);
+      await run("UPDATE machines SET status = 'IN_USE' WHERE id = ?", [machineId]);
       return get('SELECT * FROM bookings WHERE id = ?', [bookingId]);
     });
   },
@@ -146,8 +146,8 @@ export const operationsRepository = {
         [dispatchNumber, data.bookingId, data.machineId, data.operatorEmployeeId || null, data.driverEmployeeId || null, data.startEngineHours || 0]
       );
 
-      await run('UPDATE bookings SET status = "IN_PROGRESS" WHERE id = ?', [data.bookingId]);
-      await run('UPDATE machines SET status = "IN_USE" WHERE id = ?', [data.machineId]);
+      await run("UPDATE bookings SET status = 'IN_PROGRESS' WHERE id = ?", [data.bookingId]);
+      await run("UPDATE machines SET status = 'IN_USE' WHERE id = ?", [data.machineId]);
 
       return get('SELECT * FROM dispatches WHERE id = ?', [result.id]);
     });
@@ -331,10 +331,10 @@ export const operationsRepository = {
       );
 
       if (data.bookingId) {
-        await run('UPDATE bookings SET status = "COMPLETED" WHERE id = ?', [data.bookingId]);
+        await run("UPDATE bookings SET status = 'COMPLETED' WHERE id = ?", [data.bookingId]);
       }
       if (data.machineId) {
-        await run('UPDATE machines SET status = "AVAILABLE" WHERE id = ?', [data.machineId]);
+        await run("UPDATE machines SET status = 'AVAILABLE' WHERE id = ?", [data.machineId]);
       }
 
       return get('SELECT * FROM work_entries WHERE id = ?', [result.id]);
