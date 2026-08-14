@@ -2,7 +2,7 @@
   "name": "agribos-monorepo",
   "version": "1.0.0",
   "private": true,
-  "packageManager": "pnpm@11.21.0",
+  "packageManager": "pnpm@9.15.0",
   "description": "AgriBOS Agricultural Business Operating System - pnpm Monorepo Workspace",
   "scripts": {
     "dev": "concurrently \"pnpm dev:backend\" \"pnpm dev:frontend\"",

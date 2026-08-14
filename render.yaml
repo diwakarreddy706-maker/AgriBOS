@@ -4,8 +4,8 @@ services:
     name: agribos-backend
     runtime: node
     plan: free
-    buildCommand: pnpm install --frozen-lockfile
-    startCommand: pnpm --filter @agribos/backend start
+    buildCommand: npm install -g pnpm@9 && pnpm install --frozen-lockfile && pnpm rebuild sqlite3
+    startCommand: node apps/backend/src/server.js
     healthCheckPath: /api/v1/health
     envVars:
       - key: NODE_VERSION
@@ -28,7 +28,7 @@ services:
   - type: web
     name: agribos-frontend
     runtime: static
-    buildCommand: pnpm install --frozen-lockfile && pnpm --filter @agribos/frontend build
+    buildCommand: npm install -g pnpm@9 && pnpm install --frozen-lockfile && pnpm --filter @agribos/frontend build
     staticPublishPath: apps/frontend/dist
     routes:
       - type: rewrite
