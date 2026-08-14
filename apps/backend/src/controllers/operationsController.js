@@ -82,6 +82,10 @@ export const logWorkExecution = async (req, res, next) => {
     const workEntry = await operationsService.logWorkExecution(req.body);
     return sendSuccess(res, workEntry, 'Work execution logged successfully', null, 201);
   } catch (error) {
+    if (error.code === '23505' || (error.message && (error.message.includes('unique constraint') || error.message.includes('UNIQUE constraint failed')))) {
+      const inputNum = req.body.billNumber || 'specified';
+      return sendError(res, `Bill number "${inputNum}" already exists. Please specify a unique bill number or leave blank to auto-generate.`, 400);
+    }
     return sendError(res, error.message, 400);
   }
 };

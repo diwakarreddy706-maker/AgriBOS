@@ -298,7 +298,12 @@ export const operationsRepository = {
 
       const billYear = new Date().getFullYear();
       const randomSuffix = Math.floor(100000 + Math.random() * 900000);
-      const billNumber = data.billNumber || `BILL-${billYear}-${randomSuffix}`;
+      let billNumber = `BILL-${billYear}-${randomSuffix}`;
+
+      if (data.billNumber && String(data.billNumber).trim() !== '') {
+        const rawInput = String(data.billNumber).trim();
+        billNumber = rawInput.startsWith('BILL-') ? rawInput : `BILL-${billYear}-${rawInput}`;
+      }
       const workDate = data.workDate || new Date().toISOString().split('T')[0];
 
       const result = await run(
