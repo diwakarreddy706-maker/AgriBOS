@@ -542,18 +542,20 @@ export const FarmerListPage: React.FC = () => {
                           </span>
                         </td>
                         <td className="py-3.5 px-4 text-center">
-                          {(entry.balanceDue || 0) > 0 && (
+                          {(entry.balanceDue || 0) > 0 ? (
                             <button
                               onClick={() => {
                                 setSelectedWorkEntry(entry);
                                 setPaymentAmount(entry.balanceDue || 0);
                                 setIsPaymentModalOpen(true);
                               }}
-                              className="inline-flex items-center space-x-1 bg-emerald-500 hover:bg-emerald-600 text-white px-3 py-1.5 rounded-xl text-[10px] font-extrabold transition-all shadow-xs cursor-pointer"
+                              className="inline-flex items-center space-x-1.5 bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold px-3 py-2 rounded-xl text-xs transition-all shadow-sm min-h-[44px] cursor-pointer"
                             >
-                              <DollarSign className="w-3 h-3" />
-                              <span>Collect Udhar</span>
+                              <DollarSign className="w-3.5 h-3.5" />
+                              <span>Collect Payment</span>
                             </button>
+                          ) : (
+                            <span className="text-[10px] text-slate-400 font-semibold">Cleared</span>
                           )}
                         </td>
                       </tr>

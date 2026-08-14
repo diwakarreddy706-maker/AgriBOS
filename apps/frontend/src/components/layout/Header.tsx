@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useLanguageStore } from '../../store/useLanguageStore';
 import { useThemeStore } from '../../store/useThemeStore';
-import { Sun, Moon, Globe, Bell, Mail, Search, LogOut } from 'lucide-react';
+import { Sun, Moon, Globe, Bell, Search, LogOut, Menu } from 'lucide-react';
 
 const routeTitleMap: Record<string, string> = {
   '/': 'EXECUTIVE DASHBOARD',
@@ -26,7 +26,11 @@ const routeTitleMap: Record<string, string> = {
   '/masters': 'SYSTEM MASTERS',
 };
 
-export const Header: React.FC = () => {
+interface HeaderProps {
+  onOpenMobileMenu?: () => void;
+}
+
+export const Header: React.FC<HeaderProps> = ({ onOpenMobileMenu }) => {
   const { user, logout } = useAuthStore();
   const { language, setLanguage } = useLanguageStore();
   const { theme, toggleTheme } = useThemeStore();
@@ -45,14 +49,28 @@ export const Header: React.FC = () => {
   }, []);
 
   return (
-    <header className="h-16 border-b border-slate-200 dark:border-slate-800/80 bg-white/90 dark:bg-slate-950/90 backdrop-blur-xl px-6 flex items-center justify-between sticky top-0 z-30 shadow-xs text-slate-900 dark:text-slate-100 transition-colors">
-      {/* Left: Breadcrumbs Header */}
-      <div className="flex items-center space-x-2 text-xs font-semibold tracking-wider text-slate-500 uppercase">
-        <span>SRI BASAVESHWARA & CO</span>
-        <span>/</span>
-        <span>MACHINE ERP</span>
-        <span>/</span>
-        <span className="text-slate-900 dark:text-slate-100 font-extrabold">{currentPathTitle}</span>
+    <header className="h-16 border-b border-slate-200 dark:border-slate-800/80 bg-white/90 dark:bg-slate-950/90 backdrop-blur-xl px-3 sm:px-6 flex items-center justify-between sticky top-0 z-30 shadow-xs text-slate-900 dark:text-slate-100 transition-colors">
+      {/* Left: Mobile Menu Button & Breadcrumbs Header */}
+      <div className="flex items-center space-x-2 text-xs font-semibold tracking-wider text-slate-500 uppercase overflow-hidden">
+        {/* Mobile Hamburger Button */}
+        <button
+          type="button"
+          onClick={onOpenMobileMenu}
+          aria-label="Open navigation"
+          className="md:hidden w-11 h-11 flex items-center justify-center shrink-0 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+
+        <div className="flex items-center space-x-1.5 truncate">
+          <span className="hidden sm:inline text-slate-400">SRI BASAVESHWARA & CO</span>
+          <span className="hidden sm:inline text-slate-400">/</span>
+          <span className="hidden md:inline text-slate-400">MACHINE ERP</span>
+          <span className="hidden md:inline text-slate-400">/</span>
+          <span className="text-slate-900 dark:text-slate-100 font-extrabold truncate max-w-[130px] sm:max-w-none">
+            {currentPathTitle}
+          </span>
+        </div>
       </div>
 
       {/* Middle: Search bar */}
@@ -66,11 +84,12 @@ export const Header: React.FC = () => {
       </div>
 
       {/* Right Controls: Kannada toggle, theme, bell, mail, date pill */}
-      <div className="flex items-center space-x-3">
+      <div className="flex items-center space-x-1.5 sm:space-x-3 shrink-0">
         {/* Kannada Language Toggle */}
         <button
           onClick={() => setLanguage(language === 'en' ? 'kn' : 'en')}
-          className="flex items-center space-x-1.5 text-xs font-bold px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-emerald-700 dark:text-emerald-400 transition-colors cursor-pointer"
+          aria-label="Toggle language"
+          className="flex items-center space-x-1 text-xs font-bold px-2.5 sm:px-3 h-11 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-emerald-700 dark:text-emerald-400 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500"
         >
           <Globe className="w-3.5 h-3.5" />
           <span>{language === 'en' ? 'ಕನ್ನಡ' : 'English'}</span>
@@ -79,20 +98,19 @@ export const Header: React.FC = () => {
         {/* Dark / Light Theme Toggle */}
         <button
           onClick={toggleTheme}
-          className="p-2 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 transition-colors cursor-pointer"
+          aria-label="Toggle theme"
+          className="w-11 h-11 flex items-center justify-center rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500"
         >
           {theme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4 text-amber-400" />}
         </button>
 
         {/* Notifications Icon with dot */}
-        <button className="p-2 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 relative cursor-pointer">
+        <button
+          aria-label="Notifications"
+          className="hidden xs:flex w-11 h-11 items-center justify-center rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 relative cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-500"
+        >
           <Bell className="w-4 h-4" />
-          <span className="w-2 h-2 rounded-full bg-emerald-500 absolute top-1.5 right-1.5 ring-2 ring-white dark:ring-slate-900" />
-        </button>
-
-        {/* Mail Icon */}
-        <button className="p-2 rounded-xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 cursor-pointer">
-          <Mail className="w-4 h-4" />
+          <span className="w-2 h-2 rounded-full bg-emerald-500 absolute top-3 right-3 ring-2 ring-white dark:ring-slate-900" />
         </button>
 
         {/* Dynamic Live Date Pill */}
@@ -104,7 +122,8 @@ export const Header: React.FC = () => {
         {user && (
           <button
             onClick={logout}
-            className="p-2 rounded-xl text-red-600 hover:bg-red-50 dark:hover:bg-red-950 transition-colors cursor-pointer"
+            aria-label="Sign out"
+            className="w-11 h-11 flex items-center justify-center rounded-xl text-red-600 hover:bg-red-50 dark:hover:bg-red-950 transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-red-500"
             title="Logout"
           >
             <LogOut className="w-4 h-4" />

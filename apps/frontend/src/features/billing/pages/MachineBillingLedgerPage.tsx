@@ -252,13 +252,13 @@ export const MachineBillingLedgerPage: React.FC = () => {
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
       {/* Top Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-emerald-800 to-teal-900 text-white p-6 rounded-2xl shadow-lg">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-gradient-to-r from-emerald-800 to-teal-900 text-white p-4 sm:p-6 rounded-2xl shadow-lg">
         <div>
           <div className="flex items-center space-x-2 text-emerald-300 text-xs font-semibold uppercase tracking-wider mb-1">
-            <Tractor className="w-4 h-4" />
-            <span>Sri Basaveshwara & Co. • Harvesting & Equipment Billing</span>
+            <Tractor className="w-4 h-4 shrink-0" />
+            <span className="truncate">Sri Basaveshwara & Co. • Harvesting & Equipment Billing</span>
           </div>
-          <h1 className="text-2xl font-black">
+          <h1 className="text-xl sm:text-2xl font-black">
             {language === 'kn' ? 'ಯಂತ್ರದ ಬಿಲ್ಲಿಂಗ್ ಮತ್ತು ಖಾತೆ ಪುಸ್ತಕ' : 'Machine Billing & Machine Ledger Book'}
           </h1>
           <p className="text-xs text-emerald-200 mt-1">
@@ -267,52 +267,52 @@ export const MachineBillingLedgerPage: React.FC = () => {
         </div>
 
         {/* Action Tabs */}
-        <div className="flex flex-wrap items-center bg-black/20 p-1.5 rounded-xl gap-1.5 backdrop-blur">
+        <div className="flex flex-wrap items-center bg-black/20 p-1.5 rounded-xl gap-1.5 backdrop-blur w-full lg:w-auto">
           <button
             onClick={() => setActiveTab('create')}
-            className={`flex items-center space-x-2 px-3 py-2 rounded-lg text-xs font-bold transition-all ${
+            className={`flex items-center space-x-2 px-3 py-2.5 rounded-lg text-xs font-bold transition-all min-h-[44px] ${
               activeTab === 'create' ? 'bg-emerald-500 text-white shadow' : 'text-emerald-100 hover:bg-white/10'
             }`}
           >
-            <PlusCircle className="w-4 h-4" />
+            <PlusCircle className="w-4 h-4 shrink-0" />
             <span>{language === 'kn' ? 'ಹೊಸ ಬಿಲ್ ಸೃಷ್ಟಿ' : 'Create Machine Bill'}</span>
           </button>
 
           <button
             type="button"
             onClick={() => setIsCreateInvoiceOpen(true)}
-            className="flex items-center space-x-1.5 px-3 py-2 rounded-lg text-xs font-bold bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-500/30 transition-all"
+            className="flex items-center space-x-1.5 px-3 py-2.5 rounded-lg text-xs font-bold bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-500/30 transition-all min-h-[44px]"
           >
-            <FileText className="w-4 h-4 text-amber-400" />
+            <FileText className="w-4 h-4 text-amber-400 shrink-0" />
             <span>+ PDF Invoice</span>
           </button>
 
           <button
             type="button"
             onClick={() => setIsCreateReceiptOpen(true)}
-            className="flex items-center space-x-1.5 px-3 py-2 rounded-lg text-xs font-bold bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-200 border border-emerald-500/30 transition-all"
+            className="flex items-center space-x-1.5 px-3 py-2.5 rounded-lg text-xs font-bold bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-200 border border-emerald-500/30 transition-all min-h-[44px]"
           >
-            <Receipt className="w-4 h-4 text-emerald-400" />
+            <Receipt className="w-4 h-4 text-emerald-400 shrink-0" />
             <span>+ Udhar Receipt</span>
           </button>
 
           <button
             onClick={() => setActiveTab('ledger')}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+            className={`flex items-center space-x-2 px-4 py-2.5 rounded-lg text-xs font-bold transition-all min-h-[44px] ${
               activeTab === 'ledger' ? 'bg-emerald-500 text-white shadow' : 'text-emerald-100 hover:bg-white/10'
             }`}
           >
-            <BookOpen className="w-4 h-4" />
+            <BookOpen className="w-4 h-4 shrink-0" />
             <span>{language === 'kn' ? 'ಯಂತ್ರದ ಖಾತೆ ಪುಸ್ತಕ' : 'Machine Ledger Book'}</span>
           </button>
 
           <button
             onClick={() => setActiveTab('directory')}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+            className={`flex items-center space-x-2 px-4 py-2.5 rounded-lg text-xs font-bold transition-all min-h-[44px] ${
               activeTab === 'directory' ? 'bg-emerald-500 text-white shadow' : 'text-emerald-100 hover:bg-white/10'
             }`}
           >
-            <Receipt className="w-4 h-4" />
+            <Receipt className="w-4 h-4 shrink-0" />
             <span>{language === 'kn' ? 'ಎಲ್ಲಾ ಬಿಲ್‌ಗಳು' : 'All Bills'}</span>
           </button>
         </div>

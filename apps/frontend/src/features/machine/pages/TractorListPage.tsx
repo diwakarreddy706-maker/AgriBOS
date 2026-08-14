@@ -72,13 +72,13 @@ export const TractorListPage: React.FC = () => {
 
       <Card>
         <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <CardTitle className="text-base font-semibold">Tractor Directory & RTO Status</CardTitle>
-            <div className="relative w-72">
+            <div className="relative w-full sm:w-72">
               <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
               <Input
                 placeholder="Search tractor registration, model, code..."
-                className="pl-9 h-9 text-xs"
+                className="pl-9 h-9 text-xs w-full"
                 value={search}
                 onChange={(e) => {
                   setSearch(e.target.value);
