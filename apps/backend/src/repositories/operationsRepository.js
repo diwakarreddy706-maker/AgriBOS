@@ -342,7 +342,37 @@ export const operationsRepository = {
         await run("UPDATE machines SET status = 'AVAILABLE' WHERE id = ?", [data.machineId]);
       }
 
-      return get('SELECT * FROM work_entries WHERE id = ?', [result.id]);
+      const row = await get('SELECT * FROM work_entries WHERE id = ?', [result.id]);
+      if (!row) return null;
+      return {
+        id: row.id,
+        billNumber: row.bill_number,
+        workDate: row.work_date,
+        billDate: row.work_date,
+        farmerId: row.farmer_id,
+        farmerName: row.farmer_name || row.operator_name || 'Farmer',
+        mobileNumber: row.mobile_number || '',
+        villageName: row.village_name || '',
+        machineId: row.machine_id,
+        machineCode: row.machine_code || 'MAC-4678',
+        machineName: row.machine_name || 'AgriBOS Machine',
+        startTime: row.start_time || '08:00 AM',
+        endTime: row.end_time || '05:30 PM',
+        breakHours: parseFloat(row.break_hours || 0),
+        netWorkingHours: parseFloat(row.work_hours || 0),
+        workHours: parseFloat(row.work_hours || 0),
+        rateType: row.rate_type || 'HOURLY',
+        ratePerUnit: parseFloat(row.rate_per_unit || 0),
+        totalAmount: parseFloat(row.total_amount || 0),
+        advanceAmount: parseFloat(row.advance_amount || 0),
+        paidAmount: parseFloat(row.paid_amount || 0),
+        balanceDue: parseFloat(row.balance_due || 0),
+        status: row.status || 'UNPAID',
+        notes: row.notes || '',
+        createdAt: row.created_at,
+        // Include raw snake_case properties as well for backwards compatibility
+        ...row
+      };
     });
   },
 

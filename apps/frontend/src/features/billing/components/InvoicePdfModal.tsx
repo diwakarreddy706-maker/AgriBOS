@@ -13,6 +13,25 @@ export const InvoicePdfModal: React.FC<InvoicePdfModalProps> = ({ bill, onClose 
   const { t, language } = useLanguageStore();
   const printableRef = useRef<HTMLDivElement>(null);
 
+  // Normalize bill properties to safely handle camelCase, snake_case, and missing properties
+  const b = (bill as any) || {};
+  const billNumber = b.billNumber || b.bill_number || 'BILL-2026';
+  const billDate = b.billDate || b.work_date || b.workDate || new Date().toISOString().split('T')[0];
+  const farmerName = b.farmerName || b.farmer_name || b.operator_name || 'Farmer';
+  const villageName = b.villageName || b.village_name || '';
+  const machineCode = b.machineCode || b.machine_code || 'MAC-4678';
+  const machineName = b.machineName || b.machine_name || 'Machine';
+  const startTime = b.startTime || b.start_time || '08:00 AM';
+  const endTime = b.endTime || b.end_time || '05:30 PM';
+  const breakHours = parseFloat(b.breakHours ?? b.break_hours ?? 0);
+  const netWorkingHours = parseFloat(b.netWorkingHours ?? b.workHours ?? b.work_hours ?? 0);
+  const rateType = b.rateType || b.rate_type || 'HOURLY';
+  const ratePerUnit = parseFloat(b.ratePerUnit ?? b.rate_per_unit ?? 0);
+  const totalAmount = parseFloat(b.totalAmount ?? b.total_amount ?? 0);
+  const advanceAmount = parseFloat(b.advanceAmount ?? b.advance_amount ?? 0);
+  const paidAmount = parseFloat(b.paidAmount ?? b.paid_amount ?? 0);
+  const balanceDue = parseFloat(b.balanceDue ?? b.balance_due ?? 0);
+
   const handlePrint = () => {
     window.print();
   };
@@ -21,17 +40,17 @@ export const InvoicePdfModal: React.FC<InvoicePdfModalProps> = ({ bill, onClose 
     const text = `*SRI BASAVESHWARA %26 CO.*%0A` +
       `*AGRICULTURAL HARVESTING BILL RECEIPT*%0A` +
       `----------------------------------%0A` +
-      `*Bill No:* ${bill.billNumber}%0A` +
-      `*Date:* ${bill.billDate}%0A` +
-      `*Farmer Name:* ${bill.farmerName} (${bill.villageName})%0A` +
-      `*Machine:* ${bill.machineCode} - ${bill.machineName}%0A` +
-      `*Working Hours:* ${bill.netWorkingHours} hrs (Break: ${bill.breakHours} hrs)%0A` +
-      `*Rate:* ₹${bill.ratePerUnit}/${bill.rateType}%0A` +
+      `*Bill No:* ${billNumber}%0A` +
+      `*Date:* ${billDate}%0A` +
+      `*Farmer Name:* ${farmerName} (${villageName})%0A` +
+      `*Machine:* ${machineCode} - ${machineName}%0A` +
+      `*Working Hours:* ${netWorkingHours} hrs (Break: ${breakHours} hrs)%0A` +
+      `*Rate:* ₹${ratePerUnit}/${rateType}%0A` +
       `----------------------------------%0A` +
-      `*Total Amount:* ₹${bill.totalAmount.toLocaleString()}%0A` +
-      `*Advance Paid:* ₹${(bill.advanceAmount || 0).toLocaleString()}%0A` +
-      `*Paid Amount:* ₹${bill.paidAmount.toLocaleString()}%0A` +
-      `*Balance Due (Udhar):* ₹${bill.balanceDue.toLocaleString()}%0A` +
+      `*Total Amount:* ₹${totalAmount.toLocaleString()}%0A` +
+      `*Advance Paid:* ₹${advanceAmount.toLocaleString()}%0A` +
+      `*Paid Amount:* ₹${paidAmount.toLocaleString()}%0A` +
+      `*Balance Due (Udhar):* ₹${balanceDue.toLocaleString()}%0A` +
       `----------------------------------%0A` +
       `Proprietor: Doddana Gowda | Alabanur / Sindhanur`;
     window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
@@ -81,19 +100,19 @@ export const InvoicePdfModal: React.FC<InvoicePdfModalProps> = ({ bill, onClose 
           <div className="grid grid-cols-2 gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-200 text-xs font-mono">
             <div>
               <p className="text-slate-500 uppercase tracking-wider text-[10px] font-bold">Receipt / Bill No</p>
-              <p className="font-black text-sm text-emerald-700">{bill.billNumber}</p>
+              <p className="font-black text-sm text-emerald-700">{billNumber}</p>
             </div>
             <div className="text-right">
               <p className="text-slate-500 uppercase tracking-wider text-[10px] font-bold">Billing Date</p>
-              <p className="font-bold text-slate-900">{bill.billDate}</p>
+              <p className="font-bold text-slate-900">{billDate}</p>
             </div>
             <div>
               <p className="text-slate-500 uppercase tracking-wider text-[10px] font-bold">Farmer Name</p>
-              <p className="font-black text-slate-900 text-sm">{bill.farmerName}</p>
+              <p className="font-black text-slate-900 text-sm">{farmerName}</p>
             </div>
             <div className="text-right">
               <p className="text-slate-500 uppercase tracking-wider text-[10px] font-bold">Village Location</p>
-              <p className="font-bold text-slate-900">{bill.villageName}</p>
+              <p className="font-bold text-slate-900">{villageName}</p>
             </div>
           </div>
 
@@ -101,28 +120,28 @@ export const InvoicePdfModal: React.FC<InvoicePdfModalProps> = ({ bill, onClose 
           <div className="border border-slate-200 rounded-2xl overflow-hidden text-xs">
             <div className="bg-slate-100 px-4 py-2 font-bold text-slate-700 uppercase tracking-wider text-[10px] border-b border-slate-200 flex justify-between">
               <span>Machine Operational Details</span>
-              <span>{bill.machineCode}</span>
+              <span>{machineCode}</span>
             </div>
             <div className="p-4 space-y-2 font-mono">
               <div className="flex justify-between border-b border-slate-100 pb-1.5">
                 <span className="text-slate-500">Machine Model:</span>
-                <span className="font-bold text-slate-900">{bill.machineName}</span>
+                <span className="font-bold text-slate-900">{machineName}</span>
               </div>
               <div className="flex justify-between border-b border-slate-100 pb-1.5">
                 <span className="text-slate-500">Start Time:</span>
-                <span className="font-semibold text-slate-800">{bill.startTime}</span>
+                <span className="font-semibold text-slate-800">{startTime}</span>
               </div>
               <div className="flex justify-between border-b border-slate-100 pb-1.5 text-amber-700">
                 <span>Recorded Break Pauses:</span>
-                <span>{bill.breakHours} hrs</span>
+                <span>{breakHours} hrs</span>
               </div>
               <div className="flex justify-between border-b border-slate-100 pb-1.5">
                 <span className="text-slate-500">End Time:</span>
-                <span className="font-semibold text-slate-800">{bill.endTime}</span>
+                <span className="font-semibold text-slate-800">{endTime}</span>
               </div>
               <div className="flex justify-between font-extrabold text-emerald-800 pt-1 text-xs">
                 <span>Net Billable Hours:</span>
-                <span>{bill.netWorkingHours} Hours</span>
+                <span>{netWorkingHours} Hours</span>
               </div>
             </div>
           </div>
@@ -130,25 +149,25 @@ export const InvoicePdfModal: React.FC<InvoicePdfModalProps> = ({ bill, onClose 
           {/* Financial Calculation Statement */}
           <div className="bg-slate-900 text-white rounded-2xl p-5 space-y-3 font-mono">
             <div className="flex justify-between text-xs text-slate-300">
-              <span>Billing Rate ({bill.rateType}):</span>
-              <span>₹{bill.ratePerUnit.toLocaleString()} / unit</span>
+              <span>Billing Rate ({rateType}):</span>
+              <span>₹{ratePerUnit.toLocaleString()} / unit</span>
             </div>
             <div className="flex justify-between text-base font-black text-emerald-400 border-b border-slate-700 pb-2">
               <span>Total Bill Amount:</span>
-              <span>₹{bill.totalAmount.toLocaleString()}</span>
+              <span>₹{totalAmount.toLocaleString()}</span>
             </div>
             <div className="flex justify-between text-xs text-indigo-300">
               <span>Advance Payment Received:</span>
-              <span>₹{(bill.advanceAmount || 0).toLocaleString()}</span>
+              <span>₹{advanceAmount.toLocaleString()}</span>
             </div>
             <div className="flex justify-between text-xs text-emerald-300">
               <span>Settled Cash Payment:</span>
-              <span>₹{bill.paidAmount.toLocaleString()}</span>
+              <span>₹{paidAmount.toLocaleString()}</span>
             </div>
             <div className="flex justify-between text-sm font-black pt-2 border-t border-slate-700 text-amber-400">
               <span>Net Balance Due (Udhar):</span>
-              <span className={bill.balanceDue > 0 ? 'text-rose-400 font-extrabold' : 'text-emerald-400'}>
-                ₹{bill.balanceDue.toLocaleString()}
+              <span className={balanceDue > 0 ? 'text-rose-400 font-extrabold' : 'text-emerald-400'}>
+                ₹{balanceDue.toLocaleString()}
               </span>
             </div>
           </div>
@@ -158,7 +177,7 @@ export const InvoicePdfModal: React.FC<InvoicePdfModalProps> = ({ bill, onClose 
             <div className="space-y-1">
               <p className="text-[10px] font-bold text-slate-400 uppercase">Payment Status</p>
               <div className="flex items-center space-x-1 font-bold">
-                {bill.balanceDue === 0 ? (
+                {balanceDue === 0 ? (
                   <span className="flex items-center text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-200">
                     <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> FULLY SETTLED
                   </span>
