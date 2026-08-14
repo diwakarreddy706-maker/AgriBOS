@@ -52,9 +52,10 @@ export const MachineBillingLedgerPage: React.FC = () => {
     queryFn: () => machineApi.getMachines('', undefined, undefined, 0, 100),
   });
 
-  const bills: MachineBillEntry[] = workExecutionsData?.content || [];
-  const farmersList = farmersData?.content || [];
-  const machinesList = machinesData?.content || [];
+  const rawBills = workExecutionsData?.content || workExecutionsData;
+  const bills: MachineBillEntry[] = Array.isArray(rawBills) ? rawBills : [];
+  const farmersList = farmersData?.content || (Array.isArray(farmersData) ? farmersData : []);
+  const machinesList = machinesData?.content || (Array.isArray(machinesData) ? machinesData : []);
 
   // Form State for New Machine Bill
   const [formData, setFormData] = useState({

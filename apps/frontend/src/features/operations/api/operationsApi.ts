@@ -131,7 +131,11 @@ export const operationsApi = {
       const res = await apiClient.get('/work-executions', {
         params: { search, machineType, farmerId, page, size }
       });
-      return res.data?.data || { content: [], totalElements: 0 };
+      const data = res.data?.data;
+      if (Array.isArray(data)) {
+        return { content: data, totalElements: res.data?.totalElements || data.length };
+      }
+      return data || { content: [], totalElements: 0 };
     } catch {
       return { content: [], totalElements: 0 };
     }
