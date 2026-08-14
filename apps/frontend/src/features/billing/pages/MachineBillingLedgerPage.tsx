@@ -715,8 +715,8 @@ export const MachineBillingLedgerPage: React.FC = () => {
                     <td className="p-3 font-bold text-emerald-700">{b.status}</td>
                     <td className="p-3 text-right">
                       <button
-                        onClick={() => handleOpenPdfPreview(b.id, 'invoice', b.billNumber)}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 border border-emerald-500/30 rounded-lg text-xs font-medium transition"
+                        onClick={() => setSelectedPrintBill(b)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 border border-emerald-500/30 rounded-lg text-xs font-medium transition cursor-pointer"
                       >
                         <FileText className="w-3.5 h-3.5" />
                         <span>PDF Invoice</span>
